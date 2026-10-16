@@ -51,3 +51,6 @@ app.use('/api/dashboard', requireAuth, dashboardRoutes);
 
 app.use(notFoundHandler);
 app.use(errorHandler);
+
+// Vercel runs the app from this default export (locally, server.ts calls listen()).
+export default app;
