@@ -1,0 +1,700 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1700" height="2821" viewBox="0 0 1700 2821">
+<title>TaskFlow backend architecture and API flow</title>
+
+<defs>
+  <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+    <path d="M0,0 L10,5 L0,10 z" fill="#475569"/>
+  </marker>
+  <style>
+    text { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif; }
+    .h1 { font-size: 26px; font-weight: 700; fill: #0f172a; }
+    .h2 { font-size: 19px; font-weight: 700; fill: #0f172a; }
+    .secnum { font-size: 14px; font-weight: 700; fill: #ffffff; }
+    .sub { font-size: 13px; fill: #64748b; }
+    .boxt { font-size: 14px; font-weight: 700; fill: #0f172a; }
+    .small { font-size: 11.5px; fill: #475569; }
+    .small2 { font-size: 12.5px; fill: #334155; }
+    .label { font-size: 10.5px; font-weight: 700; fill: #7c3aed; letter-spacing: 0.08em; }
+    .edge { font-size: 11px; font-weight: 600; fill: #334155; }
+    .edge-red { font-size: 11px; font-weight: 600; fill: #dc2626; }
+    .method { font-size: 10.5px; font-weight: 700; font-family: Menlo, Consolas, monospace; }
+    .mono { font-size: 12px; font-family: Menlo, Consolas, monospace; fill: #0f172a; }
+    .mono-dim { font-size: 12px; font-family: Menlo, Consolas, monospace; fill: #7c3aed; }
+    .mono-light { font-size: 12px; font-family: Menlo, Consolas, monospace; fill: #e2e8f0; }
+    .desc { font-size: 11.5px; fill: #64748b; }
+    .pill { font-size: 10.5px; font-weight: 600; }
+    .tname { font-size: 14px; font-weight: 700; font-family: Menlo, Consolas, monospace; fill: #065f46; }
+    .col { font-size: 12px; font-family: Menlo, Consolas, monospace; fill: #0f172a; }
+    .colk { font-size: 12px; font-family: Menlo, Consolas, monospace; fill: #0f172a; font-weight: 700; }
+    .typ { font-size: 11.5px; font-family: Menlo, Consolas, monospace; fill: #7c3aed; }
+    .note { font-size: 11px; fill: #64748b; }
+    .note-s { font-size: 9.5px; fill: #64748b; }
+    .note-k { font-size: 11px; fill: #b45309; font-weight: 600; }
+    .idx { font-size: 11px; fill: #047857; }
+    .idx-gin { font-size: 11px; fill: #6d28d9; font-weight: 700; }
+    .stepn { font-size: 11px; font-weight: 700; fill: #5b21b6; }
+    .sql { font-size: 11.5px; font-family: Menlo, Consolas, monospace; fill: #1e293b; }
+  </style>
+</defs>
+
+<rect width="1700" height="2821" fill="#ffffff"/>
+<text x="40" y="52" class="h1" text-anchor="start" >TaskFlow — backend architecture &amp; API flow</text>
+<text x="40" y="80" class="sub" text-anchor="start" >Express 5 + TypeScript REST API · Prisma ORM · PostgreSQL · JWT in httpOnly cookie · email via SMTP</text>
+<circle cx="54" cy="124" r="14" fill="#0f172a"/>
+<text x="54" y="129" class="secnum" text-anchor="middle" >1</text>
+<text x="78" y="130" class="h2" text-anchor="start" >Request lifecycle</text>
+<text x="78" y="150" class="sub" text-anchor="start" >Every API call passes through the same pipeline, left to right. Any step can stop it with an error.</text>
+<rect x="43" y="160" width="158" height="104" rx="10" fill="#f8fafc" stroke="#94a3b8" stroke-width="1.4" />
+<text x="122.0" y="184" class="boxt" text-anchor="middle" >Client</text>
+<text x="122.0" y="208" class="small" text-anchor="middle" >Next.js app (port 3000)</text>
+<text x="122.0" y="225" class="small" text-anchor="middle" >fetch(..., credentials)</text>
+<text x="122.0" y="242" class="small" text-anchor="middle" >search debounced 300ms</text>
+<line x1="201" y1="212.0" x2="223" y2="212.0" stroke="#475569" stroke-width="1.6" marker-end="url(#arrow)"/>
+<rect x="225" y="160" width="158" height="104" rx="10" fill="#f5f3ff" stroke="#a78bfa" stroke-width="1.4" />
+<text x="304.0" y="184" class="boxt" text-anchor="middle" >Middleware</text>
+<text x="304.0" y="208" class="small" text-anchor="middle" >helmet headers</text>
+<text x="304.0" y="225" class="small" text-anchor="middle" >CORS: frontend only</text>
+<text x="304.0" y="242" class="small" text-anchor="middle" >JSON ≤ 100kb · morgan</text>
+<line x1="383" y1="212.0" x2="405" y2="212.0" stroke="#475569" stroke-width="1.6" marker-end="url(#arrow)"/>
+<rect x="407" y="160" width="158" height="104" rx="10" fill="#f5f3ff" stroke="#a78bfa" stroke-width="1.4" />
+<text x="486.0" y="184" class="boxt" text-anchor="middle" >Router</text>
+<text x="486.0" y="208" class="small" text-anchor="middle" >/api/auth  /invitations</text>
+<text x="486.0" y="225" class="small" text-anchor="middle" >/api/projects  /tasks</text>
+<text x="486.0" y="242" class="small" text-anchor="middle" >/api/dashboard /health</text>
+<line x1="565" y1="212.0" x2="587" y2="212.0" stroke="#475569" stroke-width="1.6" marker-end="url(#arrow)"/>
+<rect x="589" y="160" width="158" height="104" rx="10" fill="#f5f3ff" stroke="#a78bfa" stroke-width="1.4" />
+<text x="668.0" y="184" class="boxt" text-anchor="middle" >requireAuth</text>
+<text x="668.0" y="208" class="small" text-anchor="middle" >verify JWT cookie</text>
+<text x="668.0" y="225" class="small" text-anchor="middle" >→ req.userId</text>
+<text x="668.0" y="242" class="small" text-anchor="middle" >missing/bad → 401</text>
+<line x1="747" y1="212.0" x2="769" y2="212.0" stroke="#475569" stroke-width="1.6" marker-end="url(#arrow)"/>
+<rect x="771" y="160" width="158" height="104" rx="10" fill="#f5f3ff" stroke="#a78bfa" stroke-width="1.4" />
+<text x="850.0" y="184" class="boxt" text-anchor="middle" >Zod validation</text>
+<text x="850.0" y="208" class="small" text-anchor="middle" >body + query schemas</text>
+<text x="850.0" y="225" class="small" text-anchor="middle" >limit ≤ 100</text>
+<text x="850.0" y="242" class="small" text-anchor="middle" >bad input → 400</text>
+<line x1="929" y1="212.0" x2="951" y2="212.0" stroke="#475569" stroke-width="1.6" marker-end="url(#arrow)"/>
+<rect x="953" y="160" width="158" height="104" rx="10" fill="#f5f3ff" stroke="#a78bfa" stroke-width="1.4" />
+<text x="1032.0" y="184" class="boxt" text-anchor="middle" >Service</text>
+<text x="1032.0" y="208" class="small" text-anchor="middle" >business logic</text>
+<text x="1032.0" y="225" class="small" text-anchor="middle" >auth · projects · tasks</text>
+<text x="1032.0" y="242" class="small" text-anchor="middle" >comments · dashboard</text>
+<line x1="1111" y1="212.0" x2="1133" y2="212.0" stroke="#475569" stroke-width="1.6" marker-end="url(#arrow)"/>
+<rect x="1135" y="160" width="158" height="104" rx="10" fill="#ede9fe" stroke="#7c3aed" stroke-width="1.4" />
+<text x="1214.0" y="184" class="boxt" text-anchor="middle" >projectAccess.ts</text>
+<text x="1214.0" y="208" class="small" text-anchor="middle" >requireMember → 404</text>
+<text x="1214.0" y="225" class="small" text-anchor="middle" >requireAdmin → 403</text>
+<text x="1214.0" y="242" class="small" text-anchor="middle" >visibleTasksWhere()</text>
+<line x1="1293" y1="212.0" x2="1315" y2="212.0" stroke="#475569" stroke-width="1.6" marker-end="url(#arrow)"/>
+<rect x="1317" y="160" width="158" height="104" rx="10" fill="#f5f3ff" stroke="#a78bfa" stroke-width="1.4" />
+<text x="1396.0" y="184" class="boxt" text-anchor="middle" >Prisma client</text>
+<text x="1396.0" y="208" class="small" text-anchor="middle" >typed queries</text>
+<text x="1396.0" y="225" class="small" text-anchor="middle" >$transaction([...])</text>
+<text x="1396.0" y="242" class="small" text-anchor="middle" >raw SQL for stats</text>
+<line x1="1475" y1="212.0" x2="1497" y2="212.0" stroke="#475569" stroke-width="1.6" marker-end="url(#arrow)"/>
+<rect x="1499" y="160" width="158" height="104" rx="10" fill="#ecfdf5" stroke="#10b981" stroke-width="1.4" />
+<text x="1578.0" y="184" class="boxt" text-anchor="middle" >PostgreSQL</text>
+<text x="1578.0" y="208" class="small" text-anchor="middle" >7 tables</text>
+<text x="1578.0" y="225" class="small" text-anchor="middle" >B-tree + GIN indexes</text>
+<text x="1578.0" y="242" class="small" text-anchor="middle" >FK + ON DELETE CASCADE</text>
+<rect x="589" y="304" width="886" height="40" rx="8" fill="#fef2f2" stroke="#fca5a5" stroke-width="1.2" />
+<text x="603" y="329" class="boxt" text-anchor="start" >errorHandler (last middleware):</text>
+<text x="839" y="329" class="small" text-anchor="start" >AppError → its status · ZodError → 400 with field errors · anything else → logged, 500 &quot;Something went wrong&quot;</text>
+<line x1="668.0" y1="264" x2="668.0" y2="302" stroke="#ef4444" stroke-width="1.6" stroke-dasharray="5 4" marker-end="url(#arrow)"/>
+<line x1="850.0" y1="264" x2="850.0" y2="302" stroke="#ef4444" stroke-width="1.6" stroke-dasharray="5 4" marker-end="url(#arrow)"/>
+<line x1="1032.0" y1="264" x2="1032.0" y2="302" stroke="#ef4444" stroke-width="1.6" stroke-dasharray="5 4" marker-end="url(#arrow)"/>
+<line x1="1214.0" y1="264" x2="1214.0" y2="302" stroke="#ef4444" stroke-width="1.6" stroke-dasharray="5 4" marker-end="url(#arrow)"/>
+<line x1="1396.0" y1="264" x2="1396.0" y2="302" stroke="#ef4444" stroke-width="1.6" stroke-dasharray="5 4" marker-end="url(#arrow)"/>
+<text x="674.0" y="290" class="edge-red" text-anchor="start" >throw</text>
+<line x1="589" y1="324" x2="124.0" y2="324" stroke="#475569" stroke-width="1.6" marker-end="url(#arrow)"/>
+<line x1="122.0" y1="324" x2="122.0" y2="266" stroke="#475569" stroke-width="1.6" marker-end="url(#arrow)"/>
+<text x="170" y="318" class="edge" text-anchor="start" >JSON  { data } or { error: { message, details } }</text>
+<circle cx="54" cy="404" r="14" fill="#0f172a"/>
+<text x="54" y="409" class="secnum" text-anchor="middle" >2</text>
+<text x="78" y="410" class="h2" text-anchor="start" >API endpoints</text>
+<text x="78" y="430" class="sub" text-anchor="start" >Method · path · what it does → tables it touches.  Badge on the right = who may call it (checked on the server).</text>
+<rect x="40" y="450" width="524" height="214" rx="12" fill="#ffffff" stroke="#c4b5fd" stroke-width="1.4" />
+<rect x="40" y="450" width="524" height="38" rx="12" fill="#f5f3ff" stroke="#c4b5fd" stroke-width="1.4" />
+<rect x="41" y="476" width="522" height="12" fill="#f5f3ff"/>
+<text x="54" y="475" class="boxt" text-anchor="start" >Auth</text>
+<text x="550" y="475" class="mono-dim" text-anchor="end" >/api/auth</text>
+<rect x="52" y="498" width="60" height="20" rx="5" fill="#dbeafe" stroke="#dbeafe" stroke-width="1" />
+<text x="82" y="512" class="method" text-anchor="middle" fill="#1e40af">POST</text>
+<text x="122" y="512" class="mono" text-anchor="start" >/api/auth/register</text>
+<text x="122" y="529" class="desc" text-anchor="start" >bcrypt hash, set JWT cookie (+ join project if inviteToken) → users</text>
+<rect x="504.6" y="499" width="47.400000000000006" height="18" rx="9" fill="#f1f5f9" stroke="#f1f5f9" stroke-width="1" />
+<text x="528.3" y="512" class="pill" text-anchor="middle" fill="#475569">public</text>
+<rect x="52" y="538" width="60" height="20" rx="5" fill="#dbeafe" stroke="#dbeafe" stroke-width="1" />
+<text x="82" y="552" class="method" text-anchor="middle" fill="#1e40af">POST</text>
+<text x="122" y="552" class="mono" text-anchor="start" >/api/auth/login</text>
+<text x="122" y="569" class="desc" text-anchor="start" >check bcrypt hash, set httpOnly JWT cookie (1 day) → users</text>
+<rect x="504.6" y="539" width="47.400000000000006" height="18" rx="9" fill="#f1f5f9" stroke="#f1f5f9" stroke-width="1" />
+<text x="528.3" y="552" class="pill" text-anchor="middle" fill="#475569">public</text>
+<rect x="52" y="578" width="60" height="20" rx="5" fill="#dbeafe" stroke="#dbeafe" stroke-width="1" />
+<text x="82" y="592" class="method" text-anchor="middle" fill="#1e40af">POST</text>
+<text x="122" y="592" class="mono" text-anchor="start" >/api/auth/logout</text>
+<text x="122" y="609" class="desc" text-anchor="start" >clear the cookie</text>
+<rect x="504.6" y="579" width="47.400000000000006" height="18" rx="9" fill="#f1f5f9" stroke="#f1f5f9" stroke-width="1" />
+<text x="528.3" y="592" class="pill" text-anchor="middle" fill="#475569">public</text>
+<rect x="52" y="618" width="60" height="20" rx="5" fill="#dcfce7" stroke="#dcfce7" stroke-width="1" />
+<text x="82" y="632" class="method" text-anchor="middle" fill="#166534">GET</text>
+<text x="122" y="632" class="mono" text-anchor="start" >/api/auth/me</text>
+<text x="122" y="649" class="desc" text-anchor="start" >who am I (frontend calls this on load) → users</text>
+<rect x="485.4" y="619" width="66.6" height="18" rx="9" fill="#e0f2fe" stroke="#e0f2fe" stroke-width="1" />
+<text x="518.7" y="632" class="pill" text-anchor="middle" fill="#075985">logged in</text>
+<rect x="40" y="680" width="524" height="134" rx="12" fill="#ffffff" stroke="#c4b5fd" stroke-width="1.4" />
+<rect x="40" y="680" width="524" height="38" rx="12" fill="#f5f3ff" stroke="#c4b5fd" stroke-width="1.4" />
+<rect x="41" y="706" width="522" height="12" fill="#f5f3ff"/>
+<text x="54" y="705" class="boxt" text-anchor="start" >Invitation links</text>
+<text x="550" y="705" class="mono-dim" text-anchor="end" >/api/invitations</text>
+<rect x="52" y="728" width="60" height="20" rx="5" fill="#dcfce7" stroke="#dcfce7" stroke-width="1" />
+<text x="82" y="742" class="method" text-anchor="middle" fill="#166534">GET</text>
+<text x="122" y="742" class="mono" text-anchor="start" >/api/invitations/:token</text>
+<text x="122" y="759" class="desc" text-anchor="start" >look up sha256(token): project, inviter, status → project_invitations</text>
+<rect x="504.6" y="729" width="47.400000000000006" height="18" rx="9" fill="#f1f5f9" stroke="#f1f5f9" stroke-width="1" />
+<text x="528.3" y="742" class="pill" text-anchor="middle" fill="#475569">public</text>
+<rect x="52" y="768" width="60" height="20" rx="5" fill="#dbeafe" stroke="#dbeafe" stroke-width="1" />
+<text x="82" y="782" class="method" text-anchor="middle" fill="#1e40af">POST</text>
+<text x="122" y="782" class="mono" text-anchor="start" >/api/invitations/:token/accept</text>
+<text x="122" y="799" class="desc" text-anchor="start" >email must match; join + mark used (1 transaction)</text>
+<rect x="485.4" y="769" width="66.6" height="18" rx="9" fill="#e0f2fe" stroke="#e0f2fe" stroke-width="1" />
+<text x="518.7" y="782" class="pill" text-anchor="middle" fill="#075985">logged in</text>
+<rect x="40" y="830" width="524" height="94" rx="12" fill="#ffffff" stroke="#c4b5fd" stroke-width="1.4" />
+<rect x="40" y="830" width="524" height="38" rx="12" fill="#f5f3ff" stroke="#c4b5fd" stroke-width="1.4" />
+<rect x="41" y="856" width="522" height="12" fill="#f5f3ff"/>
+<text x="54" y="855" class="boxt" text-anchor="start" >Dashboard</text>
+<text x="550" y="855" class="mono-dim" text-anchor="end" >/api/dashboard</text>
+<rect x="52" y="878" width="60" height="20" rx="5" fill="#dcfce7" stroke="#dcfce7" stroke-width="1" />
+<text x="82" y="892" class="method" text-anchor="middle" fill="#166534">GET</text>
+<text x="122" y="892" class="mono" text-anchor="start" >/api/dashboard</text>
+<text x="122" y="909" class="desc" text-anchor="start" >1 aggregate SQL for counts + attention top 4 + mentions top 4</text>
+<rect x="485.4" y="879" width="66.6" height="18" rx="9" fill="#e0f2fe" stroke="#e0f2fe" stroke-width="1" />
+<text x="518.7" y="892" class="pill" text-anchor="middle" fill="#075985">logged in</text>
+<rect x="40" y="940" width="524" height="134" rx="12" fill="#ffffff" stroke="#c4b5fd" stroke-width="1.4" />
+<rect x="40" y="940" width="524" height="38" rx="12" fill="#f5f3ff" stroke="#c4b5fd" stroke-width="1.4" />
+<rect x="41" y="966" width="522" height="12" fill="#f5f3ff"/>
+<text x="54" y="965" class="boxt" text-anchor="start" >System</text>
+<text x="550" y="965" class="mono-dim" text-anchor="end" ></text>
+<rect x="52" y="988" width="60" height="20" rx="5" fill="#dcfce7" stroke="#dcfce7" stroke-width="1" />
+<text x="82" y="1002" class="method" text-anchor="middle" fill="#166534">GET</text>
+<text x="122" y="1002" class="mono" text-anchor="start" >/api/health</text>
+<text x="122" y="1019" class="desc" text-anchor="start" >SELECT 1: used by Docker / load balancer health checks</text>
+<rect x="504.6" y="989" width="47.400000000000006" height="18" rx="9" fill="#f1f5f9" stroke="#f1f5f9" stroke-width="1" />
+<text x="528.3" y="1002" class="pill" text-anchor="middle" fill="#475569">public</text>
+<rect x="52" y="1028" width="60" height="20" rx="5" fill="#dcfce7" stroke="#dcfce7" stroke-width="1" />
+<text x="82" y="1042" class="method" text-anchor="middle" fill="#166534">GET</text>
+<text x="122" y="1042" class="mono" text-anchor="start" >/api/docs</text>
+<text x="122" y="1059" class="desc" text-anchor="start" >Swagger UI generated from docs/openapi.yaml</text>
+<rect x="504.6" y="1029" width="47.400000000000006" height="18" rx="9" fill="#f1f5f9" stroke="#f1f5f9" stroke-width="1" />
+<text x="528.3" y="1042" class="pill" text-anchor="middle" fill="#475569">public</text>
+<rect x="588" y="450" width="524" height="572" rx="12" fill="#ffffff" stroke="#c4b5fd" stroke-width="1.4" />
+<rect x="588" y="450" width="524" height="38" rx="12" fill="#f5f3ff" stroke="#c4b5fd" stroke-width="1.4" />
+<rect x="589" y="476" width="522" height="12" fill="#f5f3ff"/>
+<text x="602" y="475" class="boxt" text-anchor="start" >Projects</text>
+<text x="1098" y="475" class="mono-dim" text-anchor="end" >/api/projects</text>
+<text x="602" y="512" class="label" text-anchor="start" >PROJECTS</text>
+<rect x="600" y="524" width="60" height="20" rx="5" fill="#dcfce7" stroke="#dcfce7" stroke-width="1" />
+<text x="630" y="538" class="method" text-anchor="middle" fill="#166534">GET</text>
+<text x="670" y="538" class="mono" text-anchor="start" >/api/projects</text>
+<text x="670" y="555" class="desc" text-anchor="start" >my projects + my role + progress (1 groupBy, no N+1)</text>
+<rect x="1033.4" y="525" width="66.6" height="18" rx="9" fill="#e0f2fe" stroke="#e0f2fe" stroke-width="1" />
+<text x="1066.7" y="538" class="pill" text-anchor="middle" fill="#075985">logged in</text>
+<rect x="600" y="564" width="60" height="20" rx="5" fill="#dbeafe" stroke="#dbeafe" stroke-width="1" />
+<text x="630" y="578" class="method" text-anchor="middle" fill="#1e40af">POST</text>
+<text x="670" y="578" class="mono" text-anchor="start" >/api/projects</text>
+<text x="670" y="595" class="desc" text-anchor="start" >create; creator becomes OWNER → projects, project_members</text>
+<rect x="1033.4" y="565" width="66.6" height="18" rx="9" fill="#e0f2fe" stroke="#e0f2fe" stroke-width="1" />
+<text x="1066.7" y="578" class="pill" text-anchor="middle" fill="#075985">logged in</text>
+<rect x="600" y="604" width="60" height="20" rx="5" fill="#dcfce7" stroke="#dcfce7" stroke-width="1" />
+<text x="630" y="618" class="method" text-anchor="middle" fill="#166534">GET</text>
+<text x="670" y="618" class="mono" text-anchor="start" >/api/projects/:id</text>
+<text x="670" y="635" class="desc" text-anchor="start" >one project with my role and progress</text>
+<rect x="1052.6" y="605" width="47.400000000000006" height="18" rx="9" fill="#dbeafe" stroke="#dbeafe" stroke-width="1" />
+<text x="1076.3" y="618" class="pill" text-anchor="middle" fill="#1e40af">member</text>
+<rect x="600" y="644" width="60" height="20" rx="5" fill="#fef3c7" stroke="#fef3c7" stroke-width="1" />
+<text x="630" y="658" class="method" text-anchor="middle" fill="#92400e">PATCH</text>
+<text x="670" y="658" class="mono" text-anchor="start" >/api/projects/:id</text>
+<text x="670" y="675" class="desc" text-anchor="start" >rename / change description → projects</text>
+<rect x="1020.6" y="645" width="79.4" height="18" rx="9" fill="#ede9fe" stroke="#ede9fe" stroke-width="1" />
+<text x="1060.3" y="658" class="pill" text-anchor="middle" fill="#5b21b6">owner/admin</text>
+<rect x="600" y="684" width="60" height="20" rx="5" fill="#fee2e2" stroke="#fee2e2" stroke-width="1" />
+<text x="630" y="698" class="method" text-anchor="middle" fill="#991b1b">DELETE</text>
+<text x="670" y="698" class="mono" text-anchor="start" >/api/projects/:id</text>
+<text x="670" y="715" class="desc" text-anchor="start" >delete; tasks, members, history cascade</text>
+<rect x="1020.6" y="685" width="79.4" height="18" rx="9" fill="#ede9fe" stroke="#ede9fe" stroke-width="1" />
+<text x="1060.3" y="698" class="pill" text-anchor="middle" fill="#5b21b6">owner/admin</text>
+<text x="602" y="738" class="label" text-anchor="start" >MEMBERS &amp; ROLES</text>
+<rect x="600" y="750" width="60" height="20" rx="5" fill="#dcfce7" stroke="#dcfce7" stroke-width="1" />
+<text x="630" y="764" class="method" text-anchor="middle" fill="#166534">GET</text>
+<text x="670" y="764" class="mono" text-anchor="start" >/api/projects/:id/members</text>
+<text x="670" y="781" class="desc" text-anchor="start" >team list, owner first → project_members, users</text>
+<rect x="1052.6" y="751" width="47.400000000000006" height="18" rx="9" fill="#dbeafe" stroke="#dbeafe" stroke-width="1" />
+<text x="1076.3" y="764" class="pill" text-anchor="middle" fill="#1e40af">member</text>
+<rect x="600" y="790" width="60" height="20" rx="5" fill="#fef3c7" stroke="#fef3c7" stroke-width="1" />
+<text x="630" y="804" class="method" text-anchor="middle" fill="#92400e">PATCH</text>
+<text x="670" y="804" class="mono" text-anchor="start" >/api/projects/:id/members/:userId</text>
+<text x="670" y="821" class="desc" text-anchor="start" >make Admin / Member (owner can&#x27;t change)</text>
+<rect x="1020.6" y="791" width="79.4" height="18" rx="9" fill="#ede9fe" stroke="#ede9fe" stroke-width="1" />
+<text x="1060.3" y="804" class="pill" text-anchor="middle" fill="#5b21b6">owner/admin</text>
+<rect x="600" y="830" width="60" height="20" rx="5" fill="#fee2e2" stroke="#fee2e2" stroke-width="1" />
+<text x="630" y="844" class="method" text-anchor="middle" fill="#991b1b">DELETE</text>
+<text x="670" y="844" class="mono" text-anchor="start" >/api/projects/:id/members/:userId</text>
+<text x="670" y="861" class="desc" text-anchor="start" >remove (or leave); unassign their tasks (1 txn)</text>
+<rect x="982.2" y="831" width="117.80000000000001" height="18" rx="9" fill="#ede9fe" stroke="#ede9fe" stroke-width="1" />
+<text x="1041.1" y="844" class="pill" text-anchor="middle" fill="#5b21b6">owner/admin, self</text>
+<text x="602" y="884" class="label" text-anchor="start" >INVITATIONS</text>
+<rect x="600" y="896" width="60" height="20" rx="5" fill="#dcfce7" stroke="#dcfce7" stroke-width="1" />
+<text x="630" y="910" class="method" text-anchor="middle" fill="#166534">GET</text>
+<text x="670" y="910" class="mono" text-anchor="start" >/api/projects/:id/invitations</text>
+<text x="670" y="927" class="desc" text-anchor="start" >pending + expired invites → project_invitations</text>
+<rect x="1020.6" y="897" width="79.4" height="18" rx="9" fill="#ede9fe" stroke="#ede9fe" stroke-width="1" />
+<text x="1060.3" y="910" class="pill" text-anchor="middle" fill="#5b21b6">owner/admin</text>
+<rect x="600" y="936" width="60" height="20" rx="5" fill="#dbeafe" stroke="#dbeafe" stroke-width="1" />
+<text x="630" y="950" class="method" text-anchor="middle" fill="#1e40af">POST</text>
+<text x="670" y="950" class="mono" text-anchor="start" >/api/projects/:id/invitations</text>
+<text x="670" y="967" class="desc" text-anchor="start" >random token, store sha256, expires 24h, email</text>
+<rect x="1020.6" y="937" width="79.4" height="18" rx="9" fill="#ede9fe" stroke="#ede9fe" stroke-width="1" />
+<text x="1060.3" y="950" class="pill" text-anchor="middle" fill="#5b21b6">owner/admin</text>
+<rect x="600" y="976" width="60" height="20" rx="5" fill="#fee2e2" stroke="#fee2e2" stroke-width="1" />
+<text x="630" y="990" class="method" text-anchor="middle" fill="#991b1b">DELETE</text>
+<text x="670" y="990" class="mono" text-anchor="start" >/api/projects/:id/invitations/:invId</text>
+<text x="670" y="1007" class="desc" text-anchor="start" >cancel: the link stops working</text>
+<rect x="1020.6" y="977" width="79.4" height="18" rx="9" fill="#ede9fe" stroke="#ede9fe" stroke-width="1" />
+<text x="1060.3" y="990" class="pill" text-anchor="middle" fill="#5b21b6">owner/admin</text>
+<rect x="1136" y="450" width="524" height="492" rx="12" fill="#ffffff" stroke="#c4b5fd" stroke-width="1.4" />
+<rect x="1136" y="450" width="524" height="38" rx="12" fill="#f5f3ff" stroke="#c4b5fd" stroke-width="1.4" />
+<rect x="1137" y="476" width="522" height="12" fill="#f5f3ff"/>
+<text x="1150" y="475" class="boxt" text-anchor="start" >Tasks</text>
+<text x="1646" y="475" class="mono-dim" text-anchor="end" >/api/tasks</text>
+<text x="1150" y="512" class="label" text-anchor="start" >TASKS</text>
+<rect x="1148" y="524" width="60" height="20" rx="5" fill="#dcfce7" stroke="#dcfce7" stroke-width="1" />
+<text x="1178" y="538" class="method" text-anchor="middle" fill="#166534">GET</text>
+<text x="1218" y="538" class="mono" text-anchor="start" >/api/tasks</text>
+<text x="1218" y="555" class="desc" text-anchor="start" >?search &amp;status &amp;priority &amp;assigneeId &amp;due &amp;projectId &amp;page &amp;limit</text>
+<rect x="1600.6" y="525" width="47.400000000000006" height="18" rx="9" fill="#dbeafe" stroke="#dbeafe" stroke-width="1" />
+<text x="1624.3" y="538" class="pill" text-anchor="middle" fill="#1e40af">member</text>
+<rect x="1148" y="564" width="60" height="20" rx="5" fill="#dbeafe" stroke="#dbeafe" stroke-width="1" />
+<text x="1178" y="578" class="method" text-anchor="middle" fill="#1e40af">POST</text>
+<text x="1218" y="578" class="mono" text-anchor="start" >/api/tasks</text>
+<text x="1218" y="595" class="desc" text-anchor="start" >create; members&#x27; tasks are auto-assigned to themselves</text>
+<rect x="1600.6" y="565" width="47.400000000000006" height="18" rx="9" fill="#dbeafe" stroke="#dbeafe" stroke-width="1" />
+<text x="1624.3" y="578" class="pill" text-anchor="middle" fill="#1e40af">member</text>
+<rect x="1148" y="604" width="60" height="20" rx="5" fill="#dcfce7" stroke="#dcfce7" stroke-width="1" />
+<text x="1178" y="618" class="method" text-anchor="middle" fill="#166534">GET</text>
+<text x="1218" y="618" class="mono" text-anchor="start" >/api/tasks/:id</text>
+<text x="1218" y="635" class="desc" text-anchor="start" >details (also allowed if you were @mentioned)</text>
+<rect x="1600.6" y="605" width="47.400000000000006" height="18" rx="9" fill="#dbeafe" stroke="#dbeafe" stroke-width="1" />
+<text x="1624.3" y="618" class="pill" text-anchor="middle" fill="#1e40af">member</text>
+<rect x="1148" y="644" width="60" height="20" rx="5" fill="#fef3c7" stroke="#fef3c7" stroke-width="1" />
+<text x="1178" y="658" class="method" text-anchor="middle" fill="#92400e">PATCH</text>
+<text x="1218" y="658" class="mono" text-anchor="start" >/api/tasks/:id</text>
+<text x="1218" y="675" class="desc" text-anchor="start" >update + history row in 1 transaction → tasks, task_activities</text>
+<rect x="1549.4" y="645" width="98.60000000000001" height="18" rx="9" fill="#ede9fe" stroke="#ede9fe" stroke-width="1" />
+<text x="1598.7" y="658" class="pill" text-anchor="middle" fill="#5b21b6">assignee/admin</text>
+<rect x="1148" y="684" width="60" height="20" rx="5" fill="#fee2e2" stroke="#fee2e2" stroke-width="1" />
+<text x="1178" y="698" class="method" text-anchor="middle" fill="#991b1b">DELETE</text>
+<text x="1218" y="698" class="mono" text-anchor="start" >/api/tasks/:id</text>
+<text x="1218" y="715" class="desc" text-anchor="start" >delete; history and comments cascade</text>
+<rect x="1536.6" y="685" width="111.4" height="18" rx="9" fill="#ede9fe" stroke="#ede9fe" stroke-width="1" />
+<text x="1592.3" y="698" class="pill" text-anchor="middle" fill="#5b21b6">owner/admin, own</text>
+<text x="1150" y="738" class="label" text-anchor="start" >HISTORY</text>
+<rect x="1148" y="750" width="60" height="20" rx="5" fill="#dcfce7" stroke="#dcfce7" stroke-width="1" />
+<text x="1178" y="764" class="method" text-anchor="middle" fill="#166534">GET</text>
+<text x="1218" y="764" class="mono" text-anchor="start" >/api/tasks/:id/activity</text>
+<text x="1218" y="781" class="desc" text-anchor="start" >timeline, newest first → task_activities</text>
+<rect x="1600.6" y="751" width="47.400000000000006" height="18" rx="9" fill="#dbeafe" stroke="#dbeafe" stroke-width="1" />
+<text x="1624.3" y="764" class="pill" text-anchor="middle" fill="#1e40af">member</text>
+<text x="1150" y="804" class="label" text-anchor="start" >COMMENTS &amp; MENTIONS</text>
+<rect x="1148" y="816" width="60" height="20" rx="5" fill="#dcfce7" stroke="#dcfce7" stroke-width="1" />
+<text x="1178" y="830" class="method" text-anchor="middle" fill="#166534">GET</text>
+<text x="1218" y="830" class="mono" text-anchor="start" >/api/tasks/:id/comments</text>
+<text x="1218" y="847" class="desc" text-anchor="start" >comments + who can be @tagged → task_comments</text>
+<rect x="1600.6" y="817" width="47.400000000000006" height="18" rx="9" fill="#dbeafe" stroke="#dbeafe" stroke-width="1" />
+<text x="1624.3" y="830" class="pill" text-anchor="middle" fill="#1e40af">member</text>
+<rect x="1148" y="856" width="60" height="20" rx="5" fill="#dbeafe" stroke="#dbeafe" stroke-width="1" />
+<text x="1178" y="870" class="method" text-anchor="middle" fill="#1e40af">POST</text>
+<text x="1218" y="870" class="mono" text-anchor="start" >/api/tasks/:id/comments</text>
+<text x="1218" y="887" class="desc" text-anchor="start" >save comment + mentioned ids; email each tagged person</text>
+<rect x="1600.6" y="857" width="47.400000000000006" height="18" rx="9" fill="#dbeafe" stroke="#dbeafe" stroke-width="1" />
+<text x="1624.3" y="870" class="pill" text-anchor="middle" fill="#1e40af">member</text>
+<rect x="1148" y="896" width="60" height="20" rx="5" fill="#fee2e2" stroke="#fee2e2" stroke-width="1" />
+<text x="1178" y="910" class="method" text-anchor="middle" fill="#991b1b">DELETE</text>
+<text x="1218" y="910" class="mono" text-anchor="start" >/api/tasks/:id/comments/:commentId</text>
+<text x="1218" y="927" class="desc" text-anchor="start" >delete a comment</text>
+<rect x="1562.2" y="897" width="85.80000000000001" height="18" rx="9" fill="#ede9fe" stroke="#ede9fe" stroke-width="1" />
+<text x="1605.1" y="910" class="pill" text-anchor="middle" fill="#5b21b6">author/admin</text>
+<circle cx="54" cy="1104" r="14" fill="#0f172a"/>
+<text x="54" y="1109" class="secnum" text-anchor="middle" >3</text>
+<text x="78" y="1110" class="h2" text-anchor="start" >Database (PostgreSQL)</text>
+<text x="78" y="1130" class="sub" text-anchor="start" >PK = primary key · FK = foreign key · ◆ = index.  Arrows point from the &quot;many&quot; side to the &quot;one&quot; side.</text>
+<rect x="40" y="1150" width="370" height="183" rx="10" fill="#ffffff" stroke="#10b981" stroke-width="1.4" />
+<rect x="40" y="1150" width="370" height="32" rx="10" fill="#d1fae5" stroke="#10b981" stroke-width="1.4" />
+<rect x="41" y="1170" width="368" height="12" fill="#d1fae5"/>
+<text x="54" y="1172" class="tname" text-anchor="start" >users</text>
+<text x="52" y="1202" class="colk" text-anchor="start" >id</text>
+<text x="198" y="1202" class="typ" text-anchor="start" >uuid</text>
+<text x="266" y="1202" class="note-k" text-anchor="start" >PK</text>
+<rect x="41" y="1209" width="368" height="22" fill="#f8fafc"/>
+<text x="52" y="1224" class="col" text-anchor="start" >name</text>
+<text x="198" y="1224" class="typ" text-anchor="start" >text</text>
+<text x="266" y="1224" class="note" text-anchor="start" ></text>
+<text x="52" y="1246" class="col" text-anchor="start" >email</text>
+<text x="198" y="1246" class="typ" text-anchor="start" >text</text>
+<text x="266" y="1246" class="note" text-anchor="start" >UNIQUE</text>
+<rect x="41" y="1253" width="368" height="22" fill="#f8fafc"/>
+<text x="52" y="1268" class="col" text-anchor="start" >password_hash</text>
+<text x="198" y="1268" class="typ" text-anchor="start" >text</text>
+<text x="266" y="1268" class="note" text-anchor="start" >bcrypt</text>
+<text x="52" y="1290" class="col" text-anchor="start" >created_at</text>
+<text x="198" y="1290" class="typ" text-anchor="start" >timestamp</text>
+<text x="266" y="1290" class="note" text-anchor="start" ></text>
+<line x1="50" y1="1302" x2="400" y2="1302" stroke="#d1fae5"/>
+<text x="54" y="1318" class="idx" text-anchor="start" >◆ UNIQUE (email): login lookup</text>
+<rect x="466" y="1150" width="370" height="180" rx="10" fill="#ffffff" stroke="#10b981" stroke-width="1.4" />
+<rect x="466" y="1150" width="370" height="32" rx="10" fill="#d1fae5" stroke="#10b981" stroke-width="1.4" />
+<rect x="467" y="1170" width="368" height="12" fill="#d1fae5"/>
+<text x="480" y="1172" class="tname" text-anchor="start" >projects</text>
+<text x="478" y="1202" class="colk" text-anchor="start" >id</text>
+<text x="624" y="1202" class="typ" text-anchor="start" >uuid</text>
+<text x="692" y="1202" class="note-k" text-anchor="start" >PK</text>
+<rect x="467" y="1209" width="368" height="22" fill="#f8fafc"/>
+<text x="478" y="1224" class="colk" text-anchor="start" >created_by_id</text>
+<text x="624" y="1224" class="typ" text-anchor="start" >uuid</text>
+<text x="692" y="1224" class="note-k" text-anchor="start" >FK → users (owner)</text>
+<text x="478" y="1246" class="col" text-anchor="start" >name</text>
+<text x="624" y="1246" class="typ" text-anchor="start" >text</text>
+<text x="692" y="1246" class="note" text-anchor="start" ></text>
+<rect x="467" y="1253" width="368" height="22" fill="#f8fafc"/>
+<text x="478" y="1268" class="col" text-anchor="start" >description</text>
+<text x="624" y="1268" class="typ" text-anchor="start" >text</text>
+<text x="692" y="1268" class="note" text-anchor="start" ></text>
+<text x="478" y="1290" class="col" text-anchor="start" >created_at</text>
+<text x="624" y="1290" class="typ" text-anchor="start" >timestamp</text>
+<text x="692" y="1290" class="note" text-anchor="start" ></text>
+<rect x="467" y="1297" width="368" height="22" fill="#f8fafc"/>
+<text x="478" y="1312" class="col" text-anchor="start" >updated_at</text>
+<text x="624" y="1312" class="typ" text-anchor="start" >timestamp</text>
+<text x="692" y="1312" class="note" text-anchor="start" ></text>
+<rect x="892" y="1150" width="370" height="180" rx="10" fill="#ffffff" stroke="#10b981" stroke-width="1.4" />
+<rect x="892" y="1150" width="370" height="32" rx="10" fill="#d1fae5" stroke="#10b981" stroke-width="1.4" />
+<rect x="893" y="1170" width="368" height="12" fill="#d1fae5"/>
+<text x="906" y="1172" class="tname" text-anchor="start" >project_members</text>
+<text x="904" y="1202" class="colk" text-anchor="start" >project_id</text>
+<text x="1050" y="1202" class="typ" text-anchor="start" >uuid</text>
+<text x="1118" y="1202" class="note-k" text-anchor="start" >PK, FK → projects</text>
+<rect x="893" y="1209" width="368" height="22" fill="#f8fafc"/>
+<text x="904" y="1224" class="colk" text-anchor="start" >user_id</text>
+<text x="1050" y="1224" class="typ" text-anchor="start" >uuid</text>
+<text x="1118" y="1224" class="note-k" text-anchor="start" >PK, FK → users</text>
+<text x="904" y="1246" class="col" text-anchor="start" >role</text>
+<text x="1050" y="1246" class="typ" text-anchor="start" >enum</text>
+<text x="1118" y="1246" class="note" text-anchor="start" >OWNER/ADMIN/MEMBER</text>
+<rect x="893" y="1253" width="368" height="22" fill="#f8fafc"/>
+<text x="904" y="1268" class="col" text-anchor="start" >joined_at</text>
+<text x="1050" y="1268" class="typ" text-anchor="start" >timestamp</text>
+<text x="1118" y="1268" class="note" text-anchor="start" ></text>
+<line x1="902" y1="1280" x2="1252" y2="1280" stroke="#d1fae5"/>
+<text x="906" y="1296" class="idx" text-anchor="start" >◆ PK (project_id, user_id): no duplicates</text>
+<text x="906" y="1315" class="idx" text-anchor="start" >◆ (user_id): &quot;which projects am I in?&quot;</text>
+<rect x="1318" y="1150" width="370" height="268" rx="10" fill="#ffffff" stroke="#10b981" stroke-width="1.4" />
+<rect x="1318" y="1150" width="370" height="32" rx="10" fill="#d1fae5" stroke="#10b981" stroke-width="1.4" />
+<rect x="1319" y="1170" width="368" height="12" fill="#d1fae5"/>
+<text x="1332" y="1172" class="tname" text-anchor="start" >project_invitations</text>
+<text x="1330" y="1202" class="colk" text-anchor="start" >id</text>
+<text x="1476" y="1202" class="typ" text-anchor="start" >uuid</text>
+<text x="1544" y="1202" class="note-k" text-anchor="start" >PK</text>
+<rect x="1319" y="1209" width="368" height="22" fill="#f8fafc"/>
+<text x="1330" y="1224" class="colk" text-anchor="start" >project_id</text>
+<text x="1476" y="1224" class="typ" text-anchor="start" >uuid</text>
+<text x="1544" y="1224" class="note-k" text-anchor="start" >FK → projects</text>
+<text x="1330" y="1246" class="col" text-anchor="start" >email</text>
+<text x="1476" y="1246" class="typ" text-anchor="start" >text</text>
+<text x="1544" y="1246" class="note" text-anchor="start" ></text>
+<rect x="1319" y="1253" width="368" height="22" fill="#f8fafc"/>
+<text x="1330" y="1268" class="col" text-anchor="start" >role</text>
+<text x="1476" y="1268" class="typ" text-anchor="start" >enum</text>
+<text x="1544" y="1268" class="note" text-anchor="start" >ADMIN/MEMBER</text>
+<text x="1330" y="1290" class="col" text-anchor="start" >token_hash</text>
+<text x="1476" y="1290" class="typ" text-anchor="start" >text</text>
+<text x="1544" y="1290" class="note" text-anchor="start" >sha256, UNIQUE</text>
+<rect x="1319" y="1297" width="368" height="22" fill="#f8fafc"/>
+<text x="1330" y="1312" class="colk" text-anchor="start" >invited_by_id</text>
+<text x="1476" y="1312" class="typ" text-anchor="start" >uuid</text>
+<text x="1544" y="1312" class="note-k" text-anchor="start" >FK → users</text>
+<text x="1330" y="1334" class="col" text-anchor="start" >expires_at</text>
+<text x="1476" y="1334" class="typ" text-anchor="start" >timestamp</text>
+<text x="1544" y="1334" class="note" text-anchor="start" >created + 24h</text>
+<rect x="1319" y="1341" width="368" height="22" fill="#f8fafc"/>
+<text x="1330" y="1356" class="col" text-anchor="start" >accepted_at</text>
+<text x="1476" y="1356" class="typ" text-anchor="start" >timestamp</text>
+<text x="1544" y="1356" class="note" text-anchor="start" >null = unused</text>
+<line x1="1328" y1="1368" x2="1678" y2="1368" stroke="#d1fae5"/>
+<text x="1332" y="1384" class="idx" text-anchor="start" >◆ UNIQUE (token_hash): link lookup</text>
+<text x="1332" y="1403" class="idx" text-anchor="start" >◆ (project_id, email): pending invites</text>
+<rect x="40" y="1480" width="370" height="205" rx="10" fill="#ffffff" stroke="#10b981" stroke-width="1.4" />
+<rect x="40" y="1480" width="370" height="32" rx="10" fill="#d1fae5" stroke="#10b981" stroke-width="1.4" />
+<rect x="41" y="1500" width="368" height="12" fill="#d1fae5"/>
+<text x="54" y="1502" class="tname" text-anchor="start" >task_activities</text>
+<text x="52" y="1532" class="colk" text-anchor="start" >id</text>
+<text x="198" y="1532" class="typ" text-anchor="start" >uuid</text>
+<text x="266" y="1532" class="note-k" text-anchor="start" >PK</text>
+<rect x="41" y="1539" width="368" height="22" fill="#f8fafc"/>
+<text x="52" y="1554" class="colk" text-anchor="start" >task_id</text>
+<text x="198" y="1554" class="typ" text-anchor="start" >uuid</text>
+<text x="266" y="1554" class="note-k" text-anchor="start" >FK → tasks</text>
+<text x="52" y="1576" class="colk" text-anchor="start" >actor_id</text>
+<text x="198" y="1576" class="typ" text-anchor="start" >uuid</text>
+<text x="266" y="1576" class="note-k" text-anchor="start" >FK → users</text>
+<rect x="41" y="1583" width="368" height="22" fill="#f8fafc"/>
+<text x="52" y="1598" class="col" text-anchor="start" >action</text>
+<text x="198" y="1598" class="typ" text-anchor="start" >enum</text>
+<text x="266" y="1598" class="note" text-anchor="start" >CREATED/UPDATED</text>
+<text x="52" y="1620" class="col" text-anchor="start" >changes</text>
+<text x="198" y="1620" class="typ" text-anchor="start" >jsonb</text>
+<text x="266" y="1620" class="note" text-anchor="start" >[{field, from, to}]</text>
+<rect x="41" y="1627" width="368" height="22" fill="#f8fafc"/>
+<text x="52" y="1642" class="col" text-anchor="start" >created_at</text>
+<text x="198" y="1642" class="typ" text-anchor="start" >timestamp</text>
+<text x="266" y="1642" class="note" text-anchor="start" ></text>
+<line x1="50" y1="1654" x2="400" y2="1654" stroke="#d1fae5"/>
+<text x="54" y="1670" class="idx" text-anchor="start" >◆ (task_id, created_at): timeline in order</text>
+<rect x="466" y="1480" width="370" height="331" rx="10" fill="#ffffff" stroke="#10b981" stroke-width="1.4" />
+<rect x="466" y="1480" width="370" height="32" rx="10" fill="#d1fae5" stroke="#10b981" stroke-width="1.4" />
+<rect x="467" y="1500" width="368" height="12" fill="#d1fae5"/>
+<text x="480" y="1502" class="tname" text-anchor="start" >tasks</text>
+<text x="478" y="1532" class="colk" text-anchor="start" >id</text>
+<text x="624" y="1532" class="typ" text-anchor="start" >uuid</text>
+<text x="692" y="1532" class="note-k" text-anchor="start" >PK</text>
+<rect x="467" y="1539" width="368" height="22" fill="#f8fafc"/>
+<text x="478" y="1554" class="colk" text-anchor="start" >project_id</text>
+<text x="624" y="1554" class="typ" text-anchor="start" >uuid</text>
+<text x="692" y="1554" class="note-k" text-anchor="start" >FK → projects</text>
+<text x="478" y="1576" class="col" text-anchor="start" >title</text>
+<text x="624" y="1576" class="typ" text-anchor="start" >text</text>
+<text x="692" y="1576" class="note" text-anchor="start" >searched (ILIKE)</text>
+<rect x="467" y="1583" width="368" height="22" fill="#f8fafc"/>
+<text x="478" y="1598" class="col" text-anchor="start" >description</text>
+<text x="624" y="1598" class="typ" text-anchor="start" >text</text>
+<text x="692" y="1598" class="note" text-anchor="start" ></text>
+<text x="478" y="1620" class="col" text-anchor="start" >status</text>
+<text x="624" y="1620" class="typ" text-anchor="start" >enum</text>
+<text x="692" y="1620" class="note-s" text-anchor="start" >TODO/IN_PROGRESS/DONE</text>
+<rect x="467" y="1627" width="368" height="22" fill="#f8fafc"/>
+<text x="478" y="1642" class="col" text-anchor="start" >priority</text>
+<text x="624" y="1642" class="typ" text-anchor="start" >enum</text>
+<text x="692" y="1642" class="note" text-anchor="start" >LOW/MEDIUM/HIGH</text>
+<text x="478" y="1664" class="col" text-anchor="start" >due_date</text>
+<text x="624" y="1664" class="typ" text-anchor="start" >date</text>
+<text x="692" y="1664" class="note" text-anchor="start" >calendar day</text>
+<rect x="467" y="1671" width="368" height="22" fill="#f8fafc"/>
+<text x="478" y="1686" class="colk" text-anchor="start" >assignee_id</text>
+<text x="624" y="1686" class="typ" text-anchor="start" >uuid</text>
+<text x="692" y="1686" class="note-k" text-anchor="start" >FK → users, nullable</text>
+<text x="478" y="1708" class="colk" text-anchor="start" >created_by_id</text>
+<text x="624" y="1708" class="typ" text-anchor="start" >uuid</text>
+<text x="692" y="1708" class="note-k" text-anchor="start" >FK → users</text>
+<rect x="467" y="1715" width="368" height="22" fill="#f8fafc"/>
+<text x="478" y="1730" class="col" text-anchor="start" >created/updated_at</text>
+<text x="624" y="1730" class="typ" text-anchor="start" >timestamp</text>
+<text x="692" y="1730" class="note" text-anchor="start" ></text>
+<line x1="476" y1="1742" x2="826" y2="1742" stroke="#d1fae5"/>
+<text x="480" y="1758" class="idx" text-anchor="start" >◆ (project_id, status): filters, progress</text>
+<text x="480" y="1777" class="idx" text-anchor="start" >◆ (project_id, due_date): sort, overdue</text>
+<text x="480" y="1796" class="idx" text-anchor="start" >◆ (assignee_id): &quot;assigned to me&quot;</text>
+<rect x="892" y="1480" width="370" height="224" rx="10" fill="#ffffff" stroke="#10b981" stroke-width="1.4" />
+<rect x="892" y="1480" width="370" height="32" rx="10" fill="#d1fae5" stroke="#10b981" stroke-width="1.4" />
+<rect x="893" y="1500" width="368" height="12" fill="#d1fae5"/>
+<text x="906" y="1502" class="tname" text-anchor="start" >task_comments</text>
+<text x="904" y="1532" class="colk" text-anchor="start" >id</text>
+<text x="1050" y="1532" class="typ" text-anchor="start" >uuid</text>
+<text x="1118" y="1532" class="note-k" text-anchor="start" >PK</text>
+<rect x="893" y="1539" width="368" height="22" fill="#f8fafc"/>
+<text x="904" y="1554" class="colk" text-anchor="start" >task_id</text>
+<text x="1050" y="1554" class="typ" text-anchor="start" >uuid</text>
+<text x="1118" y="1554" class="note-k" text-anchor="start" >FK → tasks</text>
+<text x="904" y="1576" class="colk" text-anchor="start" >author_id</text>
+<text x="1050" y="1576" class="typ" text-anchor="start" >uuid</text>
+<text x="1118" y="1576" class="note-k" text-anchor="start" >FK → users</text>
+<rect x="893" y="1583" width="368" height="22" fill="#f8fafc"/>
+<text x="904" y="1598" class="col" text-anchor="start" >body</text>
+<text x="1050" y="1598" class="typ" text-anchor="start" >text</text>
+<text x="1118" y="1598" class="note" text-anchor="start" ></text>
+<text x="904" y="1620" class="col" text-anchor="start" >mentioned_user_ids</text>
+<text x="1050" y="1620" class="typ" text-anchor="start" >text[]</text>
+<text x="1118" y="1620" class="note-s" text-anchor="start" >ids of @tagged users</text>
+<rect x="893" y="1627" width="368" height="22" fill="#f8fafc"/>
+<text x="904" y="1642" class="col" text-anchor="start" >created_at</text>
+<text x="1050" y="1642" class="typ" text-anchor="start" >timestamp</text>
+<text x="1118" y="1642" class="note" text-anchor="start" ></text>
+<line x1="902" y1="1654" x2="1252" y2="1654" stroke="#d1fae5"/>
+<text x="906" y="1670" class="idx" text-anchor="start" >◆ (task_id, created_at): comments in order</text>
+<text x="906" y="1689" class="idx-gin" text-anchor="start" >◆ GIN (mentioned_user_ids): @&gt; ARRAY[id]</text>
+<line x1="466" y1="1222" x2="412" y2="1222" stroke="#475569" stroke-width="1.6" marker-end="url(#arrow)"/>
+<text x="438.0" y="1214" class="edge" text-anchor="middle" >N : 1</text>
+<line x1="892" y1="1202" x2="838" y2="1202" stroke="#475569" stroke-width="1.6" marker-end="url(#arrow)"/>
+<text x="864.0" y="1194" class="edge" text-anchor="middle" >N : 1</text>
+<line x1="651.0" y1="1480" x2="651.0" y2="1332" stroke="#475569" stroke-width="1.6" marker-end="url(#arrow)"/>
+<text x="659.0" y="1409.0" class="edge" text-anchor="start" >N : 1  (tasks → projects)</text>
+<line x1="410" y1="1554" x2="464" y2="1554" stroke="#475569" stroke-width="1.6" marker-end="url(#arrow)"/>
+<text x="438.0" y="1546" class="edge" text-anchor="middle" >N : 1</text>
+<line x1="892" y1="1554" x2="838" y2="1554" stroke="#475569" stroke-width="1.6" marker-end="url(#arrow)"/>
+<text x="864.0" y="1546" class="edge" text-anchor="middle" >N : 1</text>
+<rect x="1318" y="1480" width="370" height="236" rx="10" fill="#f8fafc" stroke="#cbd5e1" stroke-width="1" />
+<text x="1332" y="1506" class="boxt" text-anchor="start" >Foreign keys to users (not drawn)</text>
+<text x="1332" y="1532" class="small2" text-anchor="start" >project_members.user_id</text>
+<text x="1332" y="1551" class="small2" text-anchor="start" >project_invitations.invited_by_id</text>
+<text x="1332" y="1570" class="small2" text-anchor="start" >tasks.assignee_id  (SET NULL on delete)</text>
+<text x="1332" y="1589" class="small2" text-anchor="start" >tasks.created_by_id</text>
+<text x="1332" y="1608" class="small2" text-anchor="start" >task_activities.actor_id</text>
+<text x="1332" y="1627" class="small2" text-anchor="start" >task_comments.author_id</text>
+<text x="1332" y="1646" class="small2" text-anchor="start" ></text>
+<text x="1332" y="1665" class="small2" text-anchor="start" >Deleting a project cascades to its</text>
+<text x="1332" y="1684" class="small2" text-anchor="start" >members, tasks, history, comments</text>
+<text x="1332" y="1703" class="small2" text-anchor="start" >and invitations in one statement.</text>
+<circle cx="54" cy="1865" r="14" fill="#0f172a"/>
+<text x="54" y="1870" class="secnum" text-anchor="middle" >4</text>
+<text x="78" y="1871" class="h2" text-anchor="start" >Scalability &amp; performance</text>
+<text x="78" y="1891" class="sub" text-anchor="start" >What keeps the API fast as data and traffic grow, and where it is in the code.</text>
+<rect x="40" y="1911" width="524" height="132" rx="12" fill="#eff6ff" stroke="#93c5fd" stroke-width="1.3" />
+<text x="56" y="1937" class="boxt" text-anchor="start" >Search &amp; combined filters</text>
+<text x="56" y="1963" class="small2" text-anchor="start" >One WHERE built as an AND list: visibility rule +</text>
+<text x="56" y="1982" class="small2" text-anchor="start" >status + priority + assignee + due + title ILIKE &#x27;%q%&#x27;</text>
+<text x="56" y="2001" class="small2" text-anchor="start" >Frontend debounces typing (300 ms): 1 request, not 1/key</text>
+<text x="56" y="2020" class="small2" text-anchor="start" >Next step at scale: pg_trgm GIN index on tasks.title</text>
+<rect x="588" y="1911" width="524" height="132" rx="12" fill="#eff6ff" stroke="#93c5fd" stroke-width="1.3" />
+<text x="604" y="1937" class="boxt" text-anchor="start" >Pagination with a hard cap</text>
+<text x="604" y="1963" class="small2" text-anchor="start" >GET /api/tasks?page=&amp;limit=  (limit &gt; 100 → 400)</text>
+<text x="604" y="1982" class="small2" text-anchor="start" >findMany(skip, take) + count() in one $transaction</text>
+<text x="604" y="2001" class="small2" text-anchor="start" >Response: { data, meta: { page, limit, total, totalPages } }</text>
+<text x="604" y="2020" class="small2" text-anchor="start" >Next step: cursor pagination for very deep pages</text>
+<rect x="1136" y="1911" width="524" height="132" rx="12" fill="#f5f3ff" stroke="#c4b5fd" stroke-width="1.3" />
+<text x="1152" y="1937" class="boxt" text-anchor="start" >GIN index for @mentions</text>
+<text x="1152" y="1963" class="small2" text-anchor="start" >task_comments.mentioned_user_ids is a text[] column</text>
+<text x="1152" y="1982" class="small2" text-anchor="start" >Prisma has: userId  →  mentioned_user_ids @&gt; ARRAY[id]</text>
+<text x="1152" y="2001" class="small2" text-anchor="start" >GIN index = per-user list of comments that contain them</text>
+<text x="1152" y="2020" class="small2" text-anchor="start" >Used by dashboard &quot;Mentioned you&quot; + tagged-task access</text>
+<rect x="40" y="2061" width="524" height="132" rx="12" fill="#ecfdf5" stroke="#6ee7b7" stroke-width="1.3" />
+<text x="56" y="2087" class="boxt" text-anchor="start" >Indexes match the real queries</text>
+<text x="56" y="2113" class="small2" text-anchor="start" >tasks (project_id, status) · (project_id, due_date)</text>
+<text x="56" y="2132" class="small2" text-anchor="start" >tasks (assignee_id) · project_members (user_id)</text>
+<text x="56" y="2151" class="small2" text-anchor="start" >task_activities / task_comments (task_id, created_at)</text>
+<text x="56" y="2170" class="small2" text-anchor="start" >UNIQUE users(email), project_invitations(token_hash)</text>
+<rect x="588" y="2061" width="524" height="132" rx="12" fill="#ecfdf5" stroke="#6ee7b7" stroke-width="1.3" />
+<text x="604" y="2087" class="boxt" text-anchor="start" >Dashboard in one SQL query</text>
+<text x="604" y="2113" class="small2" text-anchor="start" >COUNT(*) FILTER (WHERE status = &#x27;DONE&#x27;) ... overdue ...</text>
+<text x="604" y="2132" class="small2" text-anchor="start" >JOIN project_members m ON m.user_id = $me</text>
+<text x="604" y="2151" class="small2" text-anchor="start" >Project progress: one groupBy(project_id, status)</text>
+<text x="604" y="2170" class="small2" text-anchor="start" >No N+1 queries; cost doesn&#x27;t grow with project count</text>
+<rect x="1136" y="2061" width="524" height="132" rx="12" fill="#fff7ed" stroke="#fdba74" stroke-width="1.3" />
+<text x="1152" y="2087" class="boxt" text-anchor="start" >Stateless API → scale out</text>
+<text x="1152" y="2113" class="small2" text-anchor="start" >Session lives in the JWT cookie, not in server memory</text>
+<text x="1152" y="2132" class="small2" text-anchor="start" >Run N API containers behind a load balancer</text>
+<text x="1152" y="2151" class="small2" text-anchor="start" >GET /api/health checks the DB for LB / Docker probes</text>
+<text x="1152" y="2170" class="small2" text-anchor="start" >Next steps: Redis cache for stats, PgBouncer pooling</text>
+<rect x="40" y="2211" width="524" height="132" rx="12" fill="#fefce8" stroke="#fde047" stroke-width="1.3" />
+<text x="56" y="2237" class="boxt" text-anchor="start" >Transactions keep data consistent</text>
+<text x="56" y="2263" class="small2" text-anchor="start" >Task update + its history row: both or neither</text>
+<text x="56" y="2282" class="small2" text-anchor="start" >Remove member + unassign their tasks: one transaction</text>
+<text x="56" y="2301" class="small2" text-anchor="start" >Accept invite: add member + mark link used together</text>
+<text x="56" y="2320" class="small2" text-anchor="start" >Project delete: DB cascades, not N application deletes</text>
+<rect x="588" y="2211" width="524" height="132" rx="12" fill="#fefce8" stroke="#fde047" stroke-width="1.3" />
+<text x="604" y="2237" class="boxt" text-anchor="start" >Bounded work per request</text>
+<text x="604" y="2263" class="small2" text-anchor="start" >Request body ≤ 100kb · list pages ≤ 100 rows</text>
+<text x="604" y="2282" class="small2" text-anchor="start" >Dashboard lists capped at 4 (&quot;View all&quot; pages them)</text>
+<text x="604" y="2301" class="small2" text-anchor="start" >Mention emails sent after save, never block the reply</text>
+<text x="604" y="2320" class="small2" text-anchor="start" >Failed invite email: invite still saved, &quot;Resend&quot;</text>
+<rect x="1136" y="2211" width="524" height="132" rx="12" fill="#fef2f2" stroke="#fca5a5" stroke-width="1.3" />
+<text x="1152" y="2237" class="boxt" text-anchor="start" >Security that holds at any scale</text>
+<text x="1152" y="2263" class="small2" text-anchor="start" >bcrypt passwords · httpOnly SameSite JWT cookie</text>
+<text x="1152" y="2282" class="small2" text-anchor="start" >Invite links: only sha256(token) stored, 24h, one use</text>
+<text x="1152" y="2301" class="small2" text-anchor="start" >Every query filtered by projectAccess rules (404 / 403)</text>
+<text x="1152" y="2320" class="small2" text-anchor="start" >helmet headers · CORS allowlist · Zod on every input</text>
+<circle cx="54" cy="2405" r="14" fill="#0f172a"/>
+<text x="54" y="2410" class="secnum" text-anchor="middle" >5</text>
+<text x="78" y="2411" class="h2" text-anchor="start" >Example flows</text>
+<text x="78" y="2431" class="sub" text-anchor="start" >What happens inside the backend for three common requests.</text>
+<rect x="40" y="2451" width="524" height="330" rx="12" fill="#ffffff" stroke="#94a3b8" stroke-width="1.3" />
+<text x="56" y="2479" class="boxt" text-anchor="start" >Search tasks</text>
+<rect x="54" y="2491" width="496" height="26" rx="6" fill="#0f172a" stroke="#0f172a" stroke-width="1" />
+<text x="66" y="2509" class="mono-light" text-anchor="start" >GET /api/tasks?search=design&amp;status=TODO&amp;limit=50</text>
+<circle cx="66" cy="2539" r="9" fill="#ede9fe"/>
+<text x="66" y="2543" class="stepn" text-anchor="middle" >1</text>
+<text x="82" y="2543" class="small2" text-anchor="start" >Browser waits 300 ms after the last keystroke</text>
+<circle cx="66" cy="2561" r="9" fill="#ede9fe"/>
+<text x="66" y="2565" class="stepn" text-anchor="middle" >2</text>
+<text x="82" y="2565" class="small2" text-anchor="start" >requireAuth → req.userId; Zod parses the query</text>
+<circle cx="66" cy="2583" r="9" fill="#ede9fe"/>
+<text x="66" y="2587" class="stepn" text-anchor="middle" >3</text>
+<text x="82" y="2587" class="small2" text-anchor="start" >WHERE = visibleTasksWhere(user) AND filters</text>
+<circle cx="66" cy="2605" r="9" fill="#ede9fe"/>
+<text x="66" y="2609" class="stepn" text-anchor="middle" >4</text>
+<text x="82" y="2609" class="small2" text-anchor="start" >$transaction: findMany(skip, take) + count</text>
+<circle cx="66" cy="2627" r="9" fill="#ede9fe"/>
+<text x="66" y="2631" class="stepn" text-anchor="middle" >5</text>
+<text x="82" y="2631" class="small2" text-anchor="start" >Index (project_id, status) narrows the rows</text>
+<circle cx="66" cy="2649" r="9" fill="#ede9fe"/>
+<text x="66" y="2653" class="stepn" text-anchor="middle" >6</text>
+<text x="82" y="2653" class="small2" text-anchor="start" >→ 200 { data: [...], meta: { total, ... } }</text>
+<rect x="54" y="2673" width="496" height="96" rx="6" fill="#f8fafc" stroke="#e2e8f0" stroke-width="1" />
+<text x="66" y="2693" class="sql" text-anchor="start"  xml:space="preserve">SELECT ... FROM tasks</text>
+<text x="66" y="2710" class="sql" text-anchor="start"  xml:space="preserve">WHERE (&lt;tasks this user may see&gt;)</text>
+<text x="66" y="2727" class="sql" text-anchor="start"  xml:space="preserve">  AND status = &#x27;TODO&#x27;</text>
+<text x="66" y="2744" class="sql" text-anchor="start"  xml:space="preserve">  AND title ILIKE &#x27;%design%&#x27;</text>
+<text x="66" y="2761" class="sql" text-anchor="start"  xml:space="preserve">ORDER BY due_date LIMIT 50 OFFSET 0;</text>
+<rect x="588" y="2451" width="524" height="330" rx="12" fill="#ffffff" stroke="#94a3b8" stroke-width="1.3" />
+<text x="604" y="2479" class="boxt" text-anchor="start" >Change a task&#x27;s status</text>
+<rect x="602" y="2491" width="496" height="26" rx="6" fill="#0f172a" stroke="#0f172a" stroke-width="1" />
+<text x="614" y="2509" class="mono-light" text-anchor="start" >PATCH /api/tasks/:id  { &quot;status&quot;: &quot;DONE&quot; }</text>
+<circle cx="614" cy="2539" r="9" fill="#ede9fe"/>
+<text x="614" y="2543" class="stepn" text-anchor="middle" >1</text>
+<text x="630" y="2543" class="small2" text-anchor="start" >findOpenableTask: can&#x27;t see it → 404</text>
+<circle cx="614" cy="2561" r="9" fill="#ede9fe"/>
+<text x="614" y="2565" class="stepn" text-anchor="middle" >2</text>
+<text x="630" y="2565" class="small2" text-anchor="start" >not assignee / owner / admin → 403</text>
+<circle cx="614" cy="2583" r="9" fill="#ede9fe"/>
+<text x="614" y="2587" class="stepn" text-anchor="middle" >3</text>
+<text x="630" y="2587" class="small2" text-anchor="start" >diffTask(): keep only fields that changed</text>
+<circle cx="614" cy="2605" r="9" fill="#ede9fe"/>
+<text x="614" y="2609" class="stepn" text-anchor="middle" >4</text>
+<text x="630" y="2609" class="small2" text-anchor="start" >$transaction: UPDATE task + INSERT history</text>
+<circle cx="614" cy="2627" r="9" fill="#ede9fe"/>
+<text x="614" y="2631" class="stepn" text-anchor="middle" >5</text>
+<text x="630" y="2631" class="small2" text-anchor="start" >nothing changed → no history row</text>
+<circle cx="614" cy="2649" r="9" fill="#ede9fe"/>
+<text x="614" y="2653" class="stepn" text-anchor="middle" >6</text>
+<text x="630" y="2653" class="small2" text-anchor="start" >→ 200 updated task; timeline shows To Do → Done</text>
+<rect x="602" y="2673" width="496" height="96" rx="6" fill="#f8fafc" stroke="#e2e8f0" stroke-width="1" />
+<text x="614" y="2693" class="sql" text-anchor="start"  xml:space="preserve">BEGIN;</text>
+<text x="614" y="2710" class="sql" text-anchor="start"  xml:space="preserve">UPDATE tasks SET status = &#x27;DONE&#x27; ...;</text>
+<text x="614" y="2727" class="sql" text-anchor="start"  xml:space="preserve">INSERT INTO task_activities</text>
+<text x="614" y="2744" class="sql" text-anchor="start"  xml:space="preserve">  (task_id, actor_id, action, changes) ...;</text>
+<text x="614" y="2761" class="sql" text-anchor="start"  xml:space="preserve">COMMIT;</text>
+<rect x="1136" y="2451" width="524" height="330" rx="12" fill="#ffffff" stroke="#94a3b8" stroke-width="1.3" />
+<text x="1152" y="2479" class="boxt" text-anchor="start" >Invite someone &amp; they join</text>
+<rect x="1150" y="2491" width="496" height="26" rx="6" fill="#0f172a" stroke="#0f172a" stroke-width="1" />
+<text x="1162" y="2509" class="mono-light" text-anchor="start" >POST /api/projects/:id/invitations</text>
+<circle cx="1162" cy="2539" r="9" fill="#ede9fe"/>
+<text x="1162" y="2543" class="stepn" text-anchor="middle" >1</text>
+<text x="1178" y="2543" class="small2" text-anchor="start" >requireAdmin: owner/admin, else 403</text>
+<circle cx="1162" cy="2561" r="9" fill="#ede9fe"/>
+<text x="1162" y="2565" class="stepn" text-anchor="middle" >2</text>
+<text x="1178" y="2565" class="small2" text-anchor="start" >token = 32 random bytes; store sha256(token)</text>
+<circle cx="1162" cy="2583" r="9" fill="#ede9fe"/>
+<text x="1162" y="2587" class="stepn" text-anchor="middle" >3</text>
+<text x="1178" y="2587" class="small2" text-anchor="start" >expires_at = now + 24h; sendEmail(link)</text>
+<circle cx="1162" cy="2605" r="9" fill="#ede9fe"/>
+<text x="1162" y="2609" class="stepn" text-anchor="middle" >4</text>
+<text x="1178" y="2609" class="small2" text-anchor="start" >GET /api/invitations/:token → invite page</text>
+<circle cx="1162" cy="2627" r="9" fill="#ede9fe"/>
+<text x="1162" y="2631" class="stepn" text-anchor="middle" >5</text>
+<text x="1178" y="2631" class="small2" text-anchor="start" >register {inviteToken} or POST .../accept</text>
+<circle cx="1162" cy="2649" r="9" fill="#ede9fe"/>
+<text x="1162" y="2653" class="stepn" text-anchor="middle" >6</text>
+<text x="1178" y="2653" class="small2" text-anchor="start" >→ joined; link can&#x27;t be used again</text>
+<rect x="1150" y="2673" width="496" height="96" rx="6" fill="#f8fafc" stroke="#e2e8f0" stroke-width="1" />
+<text x="1162" y="2693" class="sql" text-anchor="start"  xml:space="preserve">-- on accept (one transaction)</text>
+<text x="1162" y="2710" class="sql" text-anchor="start"  xml:space="preserve">INSERT INTO project_members</text>
+<text x="1162" y="2727" class="sql" text-anchor="start"  xml:space="preserve">  (project_id, user_id, role) ...;</text>
+<text x="1162" y="2744" class="sql" text-anchor="start"  xml:space="preserve">UPDATE project_invitations</text>
+<text x="1162" y="2761" class="sql" text-anchor="start"  xml:space="preserve">  SET accepted_at = now() ...;</text>
+</svg>

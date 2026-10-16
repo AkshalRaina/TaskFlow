@@ -9,7 +9,7 @@ A mini project-management app. Users register, create projects, add tasks with a
 
 ![TaskFlow architecture](docs/architecture.svg)
 
-See [ARCHITECTURE.md](ARCHITECTURE.md) for the design decisions.
+See [ARCHITECTURE.md](ARCHITECTURE.md) for the design decisions, and [docs/backend-architecture.svg](docs/backend-architecture.svg) for a detailed backend diagram (request flow, every API, tables, indexes and scalability).
 
 ---
 

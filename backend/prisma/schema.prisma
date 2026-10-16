@@ -107,6 +107,8 @@ model Task {
   @@index([projectId, dueDate])
   // "Tasks assigned to me" (members' view, assignee filter).
   @@index([assigneeId])
+  // Trigram GIN index: fast title search (title ILIKE '%term%'). Needs the pg_trgm extension (see its migration).
+  @@index([title(ops: raw("gin_trgm_ops"))], type: Gin)
   @@map("tasks")
 }
 

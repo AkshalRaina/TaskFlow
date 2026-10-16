@@ -20,6 +20,17 @@ Browser ──► Next.js frontend ──(fetch, cookie)──► Express API �
 
 The frontend is a client-rendered app; the browser talks to the API directly using `NEXT_PUBLIC_API_URL`.
 
+## Backend design (detailed diagram)
+
+[![TaskFlow backend: request lifecycle, API endpoints, database tables, scalability, example flows](docs/backend-architecture.svg)](docs/backend-architecture.svg)
+
+The diagram has five parts:
+1. **Request lifecycle**: the pipeline every API call goes through.
+2. **Endpoints**: who can call each one, and which tables it touches.
+3. **Database**: tables, keys and indexes.
+4. **Scalability**: search, pagination, the GIN index, the single-query dashboard, transactions.
+5. **Example flows**: three requests step by step, with the SQL they run.
+
 ## Backend structure
 
 Each feature is a module with three files:
