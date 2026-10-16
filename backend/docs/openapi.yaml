@@ -1,0 +1,788 @@
+openapi: 3.0.3
+info:
+  title: TaskFlow API
+  version: 1.0.0
+  description: |
+    REST API for TaskFlow, a mini project-management app.
+
+    **Authentication:** `POST /api/auth/login` (or `/register`) sets an httpOnly `token` cookie.
+    Your browser sends it automatically on later requests, so after logging in through
+    "Try it out" here you can call the protected endpoints directly.
+
+    **Roles:** projects have members. The creator is the project's **OWNER**.
+    - Not a member → the project and its tasks return `404`.
+    - **MEMBER** → sees the project and only the tasks assigned to them. Can change those tasks'
+      status and comment, and create tasks for themselves (always assigned to them), which they can
+      edit and delete. If someone @mentions them on another task, they can open it to read and
+      comment (but not change it). Assigning work to others, editing other tasks, editing the
+      project and managing members return `403`.
+    - **ADMIN** → sees every task; creates, assigns, edits and deletes tasks; invites and manages members.
+    - **OWNER** → everything an admin can do, and can't be removed or demoted.
+
+    **Joining a project:** owners/admins send an email invitation. The link (`/invite/<token>`) works once,
+    only for the invited email, and expires after 24 hours.
+
+    **Errors** always look like `{ "error": { "message": "...", "details": [ ... ] } }`.
+servers:
+  - url: http://localhost:4000
+tags:
+  - name: Auth
+  - name: Projects
+  - name: Tasks
+  - name: Comments
+  - name: Invitations
+  - name: Dashboard
+  - name: Health
+
+components:
+  securitySchemes:
+    cookieAuth:
+      type: apiKey
+      in: cookie
+      name: token
+
+  parameters:
+    Id:
+      name: id
+      in: path
+      required: true
+      schema: { type: string, format: uuid }
+
+  responses:
+    ValidationError:
+      description: Invalid input
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Error' }
+          example:
+            error:
+              message: Validation failed
+              details: [{ field: title, message: Title is required }]
+    Unauthorized:
+      description: Not logged in, or the session expired
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Error' }
+    NotFound:
+      description: Doesn't exist, or you're not allowed to see it
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Error' }
+    Forbidden:
+      description: You can see it, but your role doesn't allow this action
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Error' }
+
+  schemas:
+    Error:
+      type: object
+      properties:
+        error:
+          type: object
+          properties:
+            message: { type: string }
+            details:
+              type: array
+              items:
+                type: object
+                properties:
+                  field: { type: string }
+                  message: { type: string }
+
+    User:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        name: { type: string }
+        email: { type: string, format: email }
+        createdAt: { type: string, format: date-time }
+
+    RegisterInput:
+      type: object
+      required: [name, email, password]
+      properties:
+        name: { type: string, example: Alex Morgan }
+        email: { type: string, format: email, example: alex@example.com }
+        password: { type: string, minLength: 8, maxLength: 72, example: password123 }
+        inviteToken:
+          type: string
+          description: Token from an invitation link. The new account joins that project right away.
+
+    LoginInput:
+      type: object
+      required: [email, password]
+      properties:
+        email: { type: string, format: email, example: demo@taskflow.dev }
+        password: { type: string, example: password123 }
+
+    ProjectRole:
+      type: string
+      enum: [OWNER, ADMIN, MEMBER]
+
+    Invitation:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        email: { type: string, format: email }
+        role: { type: string, enum: [ADMIN, MEMBER] }
+        invitedBy: { type: string, example: Alex Morgan }
+        createdAt: { type: string, format: date-time }
+        expiresAt: { type: string, format: date-time }
+        status: { type: string, enum: [pending, expired, accepted] }
+
+    JoinedProject:
+      type: object
+      properties:
+        project: { $ref: '#/components/schemas/UserRef' }
+        role: { $ref: '#/components/schemas/ProjectRole' }
+
+    Comment:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        body: { type: string, example: '@Alex Morgan the draft is ready for review.' }
+        createdAt: { type: string, format: date-time }
+        author: { $ref: '#/components/schemas/UserRef' }
+        mentions:
+          type: array
+          items: { $ref: '#/components/schemas/UserRef' }
+
+    UserRef:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        name: { type: string }
+
+    Project:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        createdById: { type: string, format: uuid }
+        name: { type: string }
+        description: { type: string }
+        createdAt: { type: string, format: date-time }
+        updatedAt: { type: string, format: date-time }
+        myRole: { $ref: '#/components/schemas/ProjectRole' }
+        memberCount: { type: integer, example: 3 }
+        totalTasks: { type: integer, example: 12, description: Tasks you can see in this project }
+        doneTasks: { type: integer, example: 8 }
+        progress: { type: integer, description: Percent of tasks done (0-100), example: 67 }
+
+    Member:
+      type: object
+      properties:
+        userId: { type: string, format: uuid }
+        name: { type: string }
+        email: { type: string, format: email }
+        role: { $ref: '#/components/schemas/ProjectRole' }
+        joinedAt: { type: string, format: date-time }
+
+    ProjectInput:
+      type: object
+      required: [name]
+      properties:
+        name: { type: string, maxLength: 100, example: Website Redesign }
+        description: { type: string, maxLength: 1000, example: Modernize the company website. }
+
+    TaskStatus:
+      type: string
+      enum: [TODO, IN_PROGRESS, DONE]
+
+    TaskPriority:
+      type: string
+      enum: [LOW, MEDIUM, HIGH]
+
+    Task:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        projectId: { type: string, format: uuid }
+        title: { type: string }
+        description: { type: string }
+        status: { $ref: '#/components/schemas/TaskStatus' }
+        priority: { $ref: '#/components/schemas/TaskPriority' }
+        dueDate: { type: string, format: date-time, example: '2026-01-15T00:00:00.000Z' }
+        assigneeId: { type: string, format: uuid, nullable: true }
+        createdById: { type: string, format: uuid }
+        createdAt: { type: string, format: date-time }
+        updatedAt: { type: string, format: date-time }
+        project: { $ref: '#/components/schemas/UserRef' }
+        assignee:
+          allOf: [{ $ref: '#/components/schemas/UserRef' }]
+          nullable: true
+        createdBy: { $ref: '#/components/schemas/UserRef' }
+
+    TaskInput:
+      type: object
+      required: [projectId, title, dueDate]
+      properties:
+        projectId: { type: string, format: uuid }
+        title: { type: string, maxLength: 200, example: Design homepage }
+        description: { type: string, maxLength: 2000 }
+        status: { $ref: '#/components/schemas/TaskStatus' }
+        priority: { $ref: '#/components/schemas/TaskPriority' }
+        dueDate: { type: string, format: date, example: '2026-01-15' }
+        assigneeId:
+          type: string
+          format: uuid
+          nullable: true
+          description: Must be a member of the project. Omit or null = unassigned.
+
+    TaskUpdateInput:
+      type: object
+      description: Send only the fields you want to change. A task stays in its project.
+      properties:
+        title: { type: string }
+        description: { type: string }
+        status: { $ref: '#/components/schemas/TaskStatus' }
+        priority: { $ref: '#/components/schemas/TaskPriority' }
+        dueDate: { type: string, format: date }
+        assigneeId: { type: string, format: uuid, nullable: true, description: null = unassign }
+
+    Activity:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        action: { type: string, enum: [CREATED, UPDATED] }
+        changes:
+          type: array
+          items:
+            type: object
+            properties:
+              field: { type: string, example: status }
+              from: { type: string, nullable: true, example: TODO }
+              to: { type: string, nullable: true, example: DONE }
+        createdAt: { type: string, format: date-time }
+        actor: { $ref: '#/components/schemas/UserRef' }
+
+    Dashboard:
+      type: object
+      properties:
+        totalProjects: { type: integer, example: 3 }
+        totalTasks: { type: integer, example: 12 }
+        completedTasks: { type: integer, example: 6 }
+        overdueTasks: { type: integer, example: 2, description: Not done and due before today }
+        completionRate: { type: integer, example: 50 }
+        tasksByStatus:
+          type: object
+          properties:
+            TODO: { type: integer }
+            IN_PROGRESS: { type: integer }
+            DONE: { type: integer }
+        mentions:
+          type: array
+          description: Latest comments that @mention you (up to 4)
+          items:
+            type: object
+            properties:
+              id: { type: string, format: uuid }
+              body: { type: string }
+              createdAt: { type: string, format: date-time }
+              author: { $ref: '#/components/schemas/UserRef' }
+              task:
+                type: object
+                properties:
+                  id: { type: string, format: uuid }
+                  title: { type: string }
+                  project: { type: object, properties: { name: { type: string } } }
+        attention:
+          type: object
+          description: Not-done tasks that are overdue or due within 3 days (most urgent first, up to 4)
+          properties:
+            total: { type: integer }
+            tasks:
+              type: array
+              items: { $ref: '#/components/schemas/Task' }
+
+security:
+  - cookieAuth: []
+
+paths:
+  /api/health:
+    get:
+      tags: [Health]
+      summary: Health check (API + database)
+      security: []
+      responses:
+        '200': { description: OK }
+        '503': { description: Database unreachable }
+
+  /api/auth/register:
+    post:
+      tags: [Auth]
+      summary: Create an account (also logs you in)
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/RegisterInput' }
+      responses:
+        '201':
+          description: Created. Sets the `token` cookie. `joinedProject` is set when registering with an `inviteToken`.
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - { $ref: '#/components/schemas/User' }
+                  - type: object
+                    properties:
+                      joinedProject:
+                        allOf: [{ $ref: '#/components/schemas/JoinedProject' }]
+                        nullable: true
+        '400': { $ref: '#/components/responses/ValidationError' }
+        '403': { description: The invitation is for a different email }
+        '409': { description: Email already registered, or invitation already used }
+        '410': { description: The invitation has expired }
+
+  /api/auth/login:
+    post:
+      tags: [Auth]
+      summary: Log in
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/LoginInput' }
+      responses:
+        '200':
+          description: Logged in. Sets the `token` cookie.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/User' }
+        '400': { $ref: '#/components/responses/ValidationError' }
+        '401': { description: Invalid email or password }
+
+  /api/auth/logout:
+    post:
+      tags: [Auth]
+      summary: Log out (clears the cookie)
+      security: []
+      responses:
+        '204': { description: Logged out }
+
+  /api/auth/me:
+    get:
+      tags: [Auth]
+      summary: The logged-in user
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/User' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+
+  /api/projects:
+    get:
+      tags: [Projects]
+      summary: List my projects (newest first) with task counts and progress
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items: { $ref: '#/components/schemas/Project' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+    post:
+      tags: [Projects]
+      summary: Create a project
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/ProjectInput' }
+      responses:
+        '201':
+          description: Created
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Project' }
+        '400': { $ref: '#/components/responses/ValidationError' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+
+  /api/projects/{id}:
+    parameters:
+      - $ref: '#/components/parameters/Id'
+    get:
+      tags: [Projects]
+      summary: Get one project
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Project' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '404': { $ref: '#/components/responses/NotFound' }
+    patch:
+      tags: [Projects]
+      summary: Update a project (admin only; send only the fields to change)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/ProjectInput' }
+      responses:
+        '200':
+          description: Updated
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Project' }
+        '400': { $ref: '#/components/responses/ValidationError' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+    delete:
+      tags: [Projects]
+      summary: Delete a project and all of its tasks (admin only)
+      responses:
+        '204': { description: Deleted }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+
+  /api/projects/{id}/members:
+    parameters:
+      - $ref: '#/components/parameters/Id'
+    get:
+      tags: [Projects]
+      summary: List the project's members (owner first, then admins)
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items: { $ref: '#/components/schemas/Member' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '404': { $ref: '#/components/responses/NotFound' }
+
+  /api/projects/{id}/members/{userId}:
+    parameters:
+      - $ref: '#/components/parameters/Id'
+      - { name: userId, in: path, required: true, schema: { type: string, format: uuid } }
+    patch:
+      tags: [Projects]
+      summary: Make someone an admin or a member (owner/admin only)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [role]
+              properties:
+                role: { type: string, enum: [ADMIN, MEMBER] }
+      responses:
+        '200':
+          description: Updated
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Member' }
+        '403': { description: Not an owner/admin, or the target is the owner (whose role never changes) }
+        '404': { $ref: '#/components/responses/NotFound' }
+    delete:
+      tags: [Projects]
+      summary: Remove a member (owner/admin), or leave the project (yourself). Their tasks become unassigned.
+      responses:
+        '204': { description: Removed }
+        '403': { description: Not allowed, or the target is the owner (who can't be removed or leave) }
+        '404': { $ref: '#/components/responses/NotFound' }
+
+  /api/projects/{id}/invitations:
+    parameters:
+      - $ref: '#/components/parameters/Id'
+    get:
+      tags: [Invitations]
+      summary: Invitations not yet accepted, including expired ones (owner/admin only)
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items: { $ref: '#/components/schemas/Invitation' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+    post:
+      tags: [Invitations]
+      summary: Email someone a link to join (owner/admin only). Inviting the same email again sends a fresh link.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email]
+              properties:
+                email: { type: string, format: email, example: teammate@example.com }
+                role: { type: string, enum: [ADMIN, MEMBER], default: MEMBER }
+      responses:
+        '201':
+          description: Invitation created; `emailSent` is false if the email couldn't be delivered
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  invitation: { $ref: '#/components/schemas/Invitation' }
+                  emailSent: { type: boolean }
+        '400': { $ref: '#/components/responses/ValidationError' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '409': { description: Already a member of the project }
+
+  /api/projects/{id}/invitations/{invitationId}:
+    parameters:
+      - $ref: '#/components/parameters/Id'
+      - { name: invitationId, in: path, required: true, schema: { type: string, format: uuid } }
+    delete:
+      tags: [Invitations]
+      summary: Cancel an invitation (its link stops working)
+      responses:
+        '204': { description: Cancelled }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+
+  /api/invitations/{token}:
+    parameters:
+      - { name: token, in: path, required: true, schema: { type: string } }
+    get:
+      tags: [Invitations]
+      summary: What an invitation link is for (public; used by the invite page)
+      security: []
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  email: { type: string, format: email }
+                  role: { $ref: '#/components/schemas/ProjectRole' }
+                  project: { type: object, properties: { name: { type: string } } }
+                  invitedBy: { type: string }
+                  expiresAt: { type: string, format: date-time }
+                  status: { type: string, enum: [pending, expired, accepted] }
+                  accountExists: { type: boolean, description: Whether to show sign-in or sign-up }
+        '404': { description: Unknown link, or replaced by a newer invitation }
+
+  /api/invitations/{token}/accept:
+    parameters:
+      - { name: token, in: path, required: true, schema: { type: string } }
+    post:
+      tags: [Invitations]
+      summary: Join the project (signed-in user whose email matches the invitation)
+      responses:
+        '200':
+          description: Joined
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/JoinedProject' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { description: The invitation is for a different email }
+        '404': { description: Unknown link }
+        '409': { description: Already used }
+        '410': { description: Expired }
+
+  /api/tasks:
+    get:
+      tags: [Tasks]
+      summary: List the tasks I can see, with filters, search and pagination
+      description: |
+        Admins see every task in their projects; members see tasks assigned to or created by them.
+        All filters can be combined. Sorted by due date (soonest first).
+      parameters:
+        - { name: projectId, in: query, schema: { type: string } }
+        - { name: status, in: query, schema: { $ref: '#/components/schemas/TaskStatus' } }
+        - { name: priority, in: query, schema: { $ref: '#/components/schemas/TaskPriority' } }
+        - { name: search, in: query, description: Case-insensitive match on title, schema: { type: string } }
+        - { name: assigneeId, in: query, description: 'A user id, or "unassigned"', schema: { type: string } }
+        - name: due
+          in: query
+          description: 'Not-done tasks only. overdue = past due; soon = due in the next 3 days; attention = either'
+          schema: { type: string, enum: [overdue, soon, attention] }
+        - { name: page, in: query, schema: { type: integer, minimum: 1, default: 1 } }
+        - { name: limit, in: query, schema: { type: integer, minimum: 1, maximum: 100, default: 20 } }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items: { $ref: '#/components/schemas/Task' }
+                  meta:
+                    type: object
+                    properties:
+                      page: { type: integer }
+                      limit: { type: integer }
+                      total: { type: integer }
+                      totalPages: { type: integer }
+        '400': { $ref: '#/components/responses/ValidationError' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+    post:
+      tags: [Tasks]
+      summary: Create a task. Owner/admin can assign anyone; a member's task is always assigned to them.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/TaskInput' }
+      responses:
+        '201':
+          description: Created
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Task' }
+        '400': { $ref: '#/components/responses/ValidationError' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { description: Project not found (or not mine) }
+
+  /api/tasks/{id}:
+    parameters:
+      - $ref: '#/components/parameters/Id'
+    get:
+      tags: [Tasks]
+      summary: Get one task
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Task' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '404': { $ref: '#/components/responses/NotFound' }
+    patch:
+      tags: [Tasks]
+      summary: 'Update a task. Owner/admins: any field. Members: tasks they created (except the assignee), otherwise only the status, e.g. { "status": "DONE" }'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/TaskUpdateInput' }
+      responses:
+        '200':
+          description: Updated
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Task' }
+        '400': { $ref: '#/components/responses/ValidationError' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { description: A member tried to reassign a task, or edit more than the status of a task an admin assigned to them }
+        '404': { $ref: '#/components/responses/NotFound' }
+    delete:
+      tags: [Tasks]
+      summary: Delete a task (owner/admin, or a member's own task)
+      responses:
+        '204': { description: Deleted }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+
+  /api/tasks/{id}/activity:
+    parameters:
+      - $ref: '#/components/parameters/Id'
+    get:
+      tags: [Tasks]
+      summary: The task's history (every change, newest first)
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items: { $ref: '#/components/schemas/Activity' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '404': { $ref: '#/components/responses/NotFound' }
+
+  /api/tasks/{id}/comments:
+    parameters:
+      - $ref: '#/components/parameters/Id'
+    get:
+      tags: [Comments]
+      summary: Comments (oldest first), plus who can be @mentioned (everyone in the project)
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items: { $ref: '#/components/schemas/Comment' }
+                  mentionable:
+                    type: array
+                    items: { $ref: '#/components/schemas/UserRef' }
+        '404': { $ref: '#/components/responses/NotFound' }
+    post:
+      tags: [Comments]
+      summary: Add a comment. Mentioned people get an email, and can open the task to read and comment.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [body]
+              properties:
+                body: { type: string, maxLength: 2000, example: '@Alex Morgan the draft is ready.' }
+                mentionedUserIds: { type: array, items: { type: string, format: uuid } }
+      responses:
+        '201':
+          description: Created
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Comment' }
+        '400': { description: Empty comment, or mentions someone outside the project }
+        '404': { $ref: '#/components/responses/NotFound' }
+
+  /api/tasks/{id}/comments/{commentId}:
+    parameters:
+      - $ref: '#/components/parameters/Id'
+      - { name: commentId, in: path, required: true, schema: { type: string, format: uuid } }
+    delete:
+      tags: [Comments]
+      summary: Delete a comment (its author, or the project's owner/admins)
+      responses:
+        '204': { description: Deleted }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+
+  /api/dashboard:
+    get:
+      tags: [Dashboard]
+      summary: Project/task totals, completed and overdue counts
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Dashboard' }
+        '401': { $ref: '#/components/responses/Unauthorized' }

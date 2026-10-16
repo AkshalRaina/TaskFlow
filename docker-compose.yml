@@ -1,0 +1,65 @@
+# Runs the whole app locally:  docker compose up --build
+#   Frontend: http://localhost:3000
+#   API:      http://localhost:4000   (docs at /api/docs)
+#   Emails:   http://localhost:8025   (Mailpit: a local inbox that catches every email the app sends)
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: taskflow
+    ports:
+      # Set DB_PORT if 5432 is already taken by a local Postgres.
+      - "${DB_PORT:-5432}:5432"
+    volumes:
+      - db-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d taskflow"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  backend:
+    build: ./backend
+    environment:
+      DATABASE_URL: postgresql://postgres:postgres@db:5432/taskflow
+      # Override in a .env file next to this compose file for anything beyond local use.
+      JWT_SECRET: ${JWT_SECRET:-local-dev-secret-change-me}
+      CLIENT_URL: http://localhost:3000
+      PORT: 4000
+      # Invitations and @mention emails go to Mailpit instead of real inboxes.
+      SMTP_HOST: mailpit
+      SMTP_PORT: 1025
+    ports:
+      - "4000:4000"
+    depends_on:
+      db:
+        condition: service_healthy
+      mailpit:
+        condition: service_started
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:4000/api/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  frontend:
+    build:
+      context: ./frontend
+      args:
+        # The browser calls the API directly, so this is the address as seen from your machine.
+        NEXT_PUBLIC_API_URL: http://localhost:4000
+    ports:
+      - "3000:3000"
+    depends_on:
+      - backend
+
+  mailpit:
+    image: axllent/mailpit:v1.27
+    ports:
+      - "8025:8025" # web inbox
+      - "1025:1025" # SMTP
+
+volumes:
+  db-data:

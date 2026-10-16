@@ -1,0 +1,166 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum TaskStatus {
+  TODO
+  IN_PROGRESS
+  DONE
+}
+
+enum TaskPriority {
+  LOW
+  MEDIUM
+  HIGH
+}
+
+/// OWNER:  created the project. Same rights as ADMIN, and can't be removed or demoted.
+/// ADMIN:  manages tasks, members and invitations; sees every task in the project.
+/// MEMBER: sees only tasks assigned to them; can change their status and comment, and create tasks for themselves.
+enum ProjectRole {
+  OWNER
+  ADMIN
+  MEMBER
+}
+
+enum ActivityAction {
+  CREATED
+  UPDATED
+}
+
+model User {
+  id           String   @id @default(uuid())
+  name         String
+  email        String   @unique
+  passwordHash String   @map("password_hash")
+  createdAt    DateTime @default(now()) @map("created_at")
+
+  memberships     ProjectMember[]
+  createdProjects Project[]           @relation("ProjectCreator")
+  assignedTasks   Task[]              @relation("TaskAssignee")
+  createdTasks    Task[]              @relation("TaskCreator")
+  activities      TaskActivity[]
+  comments        TaskComment[]
+  sentInvitations ProjectInvitation[]
+
+  @@map("users")
+}
+
+model Project {
+  id          String   @id @default(uuid())
+  createdById String   @map("created_by_id")
+  name        String
+  description String   @default("")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  createdBy   User                @relation("ProjectCreator", fields: [createdById], references: [id])
+  members     ProjectMember[]
+  tasks       Task[]
+  invitations ProjectInvitation[]
+
+  @@map("projects")
+}
+
+/// Who belongs to a project, and with which role. One row per (project, user).
+model ProjectMember {
+  projectId String      @map("project_id")
+  userId    String      @map("user_id")
+  role      ProjectRole @default(MEMBER)
+  joinedAt  DateTime    @default(now()) @map("joined_at")
+
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([projectId, userId])
+  // "Which projects am I in?" is asked on almost every request.
+  @@index([userId])
+  @@map("project_members")
+}
+
+model Task {
+  id          String       @id @default(uuid())
+  projectId   String       @map("project_id")
+  title       String
+  description String       @default("")
+  status      TaskStatus   @default(TODO)
+  priority    TaskPriority @default(MEDIUM)
+  dueDate     DateTime     @map("due_date") @db.Date
+  assigneeId  String?      @map("assignee_id")
+  createdById String       @map("created_by_id")
+  createdAt   DateTime     @default(now()) @map("created_at")
+  updatedAt   DateTime     @updatedAt @map("updated_at")
+
+  project    Project        @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  assignee   User?          @relation("TaskAssignee", fields: [assigneeId], references: [id], onDelete: SetNull)
+  createdBy  User           @relation("TaskCreator", fields: [createdById], references: [id])
+  activities TaskActivity[]
+  comments   TaskComment[]
+
+  // Status filters / progress counts, and overdue checks / due-date sorting.
+  @@index([projectId, status])
+  @@index([projectId, dueDate])
+  // "Tasks assigned to me" (members' view, assignee filter).
+  @@index([assigneeId])
+  @@map("tasks")
+}
+
+/// One row per change to a task: the task's history timeline.
+model TaskActivity {
+  id        String         @id @default(uuid())
+  taskId    String         @map("task_id")
+  actorId   String         @map("actor_id")
+  action    ActivityAction
+  /// For UPDATED: [{ "field": "status", "from": "TODO", "to": "DONE" }, ...]
+  changes   Json           @default("[]")
+  createdAt DateTime       @default(now()) @map("created_at")
+
+  task  Task @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  actor User @relation(fields: [actorId], references: [id], onDelete: Cascade)
+
+  @@index([taskId, createdAt])
+  @@map("task_activities")
+}
+
+/// A comment on a task. "@Name" mentions are stored as user ids (and emailed to those people).
+model TaskComment {
+  id               String   @id @default(uuid())
+  taskId           String   @map("task_id")
+  authorId         String   @map("author_id")
+  body             String
+  mentionedUserIds String[] @default([]) @map("mentioned_user_ids")
+  createdAt        DateTime @default(now()) @map("created_at")
+
+  task   Task @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  author User @relation(fields: [authorId], references: [id], onDelete: Cascade)
+
+  @@index([taskId, createdAt])
+  // GIN index: fast "which comments mention me?" (mentioned_user_ids @> ARRAY[userId])
+  @@index([mentionedUserIds], type: Gin)
+  @@map("task_comments")
+}
+
+/// An emailed invitation to join a project. The link contains a random token;
+/// only its SHA-256 hash is stored, so a database leak can't be used to join projects.
+model ProjectInvitation {
+  id          String      @id @default(uuid())
+  projectId   String      @map("project_id")
+  email       String
+  role        ProjectRole @default(MEMBER)
+  tokenHash   String      @unique @map("token_hash")
+  invitedById String      @map("invited_by_id")
+  expiresAt   DateTime    @map("expires_at")
+  acceptedAt  DateTime?   @map("accepted_at")
+  createdAt   DateTime    @default(now()) @map("created_at")
+
+  project   Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  invitedBy User    @relation(fields: [invitedById], references: [id], onDelete: Cascade)
+
+  @@index([projectId, email])
+  @@map("project_invitations")
+}

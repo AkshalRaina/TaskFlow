@@ -1,0 +1,205 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="890" viewBox="0 0 1280 890" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif">
+  <title>TaskFlow architecture</title>
+  <defs>
+    <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#475569"/>
+    </marker>
+    <style>
+      .title { font-size: 16px; font-weight: 700; fill: #0f172a; }
+      .sub { font-size: 12px; fill: #64748b; }
+      .label { font-size: 10.5px; font-weight: 700; fill: #64748b; letter-spacing: 0.08em; }
+      .chip { font-size: 12px; fill: #0f172a; }
+      .chipb { font-size: 12px; font-weight: 700; fill: #0f172a; }
+      .small { font-size: 11px; fill: #475569; }
+      .tiny { font-size: 10.5px; fill: #64748b; }
+      .mono { font-family: Menlo, Consolas, monospace; font-size: 11px; fill: #0f172a; }
+      .edge { font-size: 10.5px; fill: #334155; font-weight: 600; }
+      .line { stroke: #475569; stroke-width: 1.6; fill: none; }
+    </style>
+  </defs>
+
+  <rect width="1280" height="890" fill="#ffffff"/>
+
+  <!-- Heading -->
+  <text x="40" y="44" font-size="22" font-weight="700" fill="#0f172a">TaskFlow architecture</text>
+  <text x="40" y="66" class="sub">Next.js frontend · Express REST API · PostgreSQL · email invitations</text>
+
+  <!-- ============ Browser ============ -->
+  <rect x="40" y="110" width="200" height="150" rx="12" fill="#f8fafc" stroke="#94a3b8" stroke-width="1.5"/>
+  <text x="140" y="142" text-anchor="middle" class="title">Browser</text>
+  <text x="140" y="168" text-anchor="middle" class="small">Owner · Admin · Member</text>
+  <text x="140" y="190" text-anchor="middle" class="small">Session = JWT in an</text>
+  <text x="140" y="206" text-anchor="middle" class="small">httpOnly cookie</text>
+  <text x="140" y="234" text-anchor="middle" class="tiny">(JavaScript can't read it)</text>
+
+  <!-- ============ Frontend ============ -->
+  <rect x="300" y="90" width="270" height="520" rx="14" fill="#eff6ff" stroke="#3b82f6" stroke-width="1.5"/>
+  <text x="315" y="118" class="title">Next.js frontend</text>
+  <text x="315" y="138" class="sub">React · Tailwind · port 3000</text>
+
+  <text x="315" y="166" class="label">PAGES</text>
+  <g>
+    <rect x="315" y="174" width="240" height="26" rx="6" fill="#fff" stroke="#bfdbfe"/>
+    <text x="327" y="191" class="mono">/login · /register</text>
+    <rect x="315" y="206" width="240" height="26" rx="6" fill="#fff" stroke="#bfdbfe"/>
+    <text x="327" y="223" class="mono">/dashboard</text>
+    <rect x="315" y="238" width="240" height="26" rx="6" fill="#fff" stroke="#bfdbfe"/>
+    <text x="327" y="255" class="mono">/projects · /projects/[id]</text>
+    <rect x="315" y="270" width="240" height="26" rx="6" fill="#fff" stroke="#bfdbfe"/>
+    <text x="327" y="287" class="mono">/tasks · /tasks/[id]</text>
+    <rect x="315" y="302" width="240" height="26" rx="6" fill="#fff" stroke="#bfdbfe"/>
+    <text x="327" y="319" class="mono">/invite/[token]</text>
+  </g>
+
+  <text x="315" y="356" class="label">STATE &amp; DATA</text>
+  <rect x="315" y="364" width="240" height="26" rx="6" fill="#fff" stroke="#bfdbfe"/>
+  <text x="327" y="381" class="chip">AuthContext: who is logged in</text>
+  <rect x="315" y="396" width="240" height="26" rx="6" fill="#fff" stroke="#bfdbfe"/>
+  <text x="327" y="413" class="chip">useApi hook + api() fetch client</text>
+
+  <text x="315" y="450" class="label">COMPONENTS</text>
+  <rect x="315" y="458" width="240" height="44" rx="6" fill="#fff" stroke="#bfdbfe"/>
+  <text x="327" y="476" class="chip">TasksView · TaskCard · TaskForm</text>
+  <text x="327" y="493" class="chip">Comments · MembersPanel · Timeline</text>
+
+  <rect x="315" y="514" width="240" height="44" rx="6" fill="#dbeafe" stroke="#93c5fd"/>
+  <text x="327" y="532" class="chipb">Role-aware UI</text>
+  <text x="327" y="549" class="small">hides what you can't do (API decides)</text>
+
+  <!-- ============ API ============ -->
+  <rect x="640" y="90" width="340" height="520" rx="14" fill="#f5f3ff" stroke="#8b5cf6" stroke-width="1.5"/>
+  <text x="655" y="118" class="title">Express REST API</text>
+  <text x="655" y="138" class="sub">Node · TypeScript · port 4000 · stateless</text>
+
+  <!-- request pipeline -->
+  <g>
+    <rect x="655" y="152" width="310" height="40" rx="6" fill="#fff" stroke="#ddd6fe"/>
+    <text x="667" y="168" class="chipb">Middleware</text>
+    <text x="667" y="184" class="small">helmet · CORS · JSON body · cookies · request logs</text>
+
+    <rect x="655" y="200" width="310" height="40" rx="6" fill="#fff" stroke="#ddd6fe"/>
+    <text x="667" y="216" class="chipb">Routes</text>
+    <text x="667" y="232" class="mono" font-size="10" style="font-size:10px">/auth /invitations /projects /tasks /dashboard</text>
+
+    <rect x="655" y="248" width="310" height="40" rx="6" fill="#fff" stroke="#ddd6fe"/>
+    <text x="667" y="264" class="chipb">requireAuth</text>
+    <text x="667" y="280" class="small">verify the JWT cookie → req.userId</text>
+
+    <rect x="655" y="296" width="310" height="40" rx="6" fill="#fff" stroke="#ddd6fe"/>
+    <text x="667" y="312" class="chipb">Zod validation</text>
+    <text x="667" y="328" class="small">bad input → 400 with field-level errors</text>
+
+    <rect x="655" y="344" width="310" height="56" rx="6" fill="#fff" stroke="#ddd6fe"/>
+    <text x="667" y="360" class="chipb">Services (business logic)</text>
+    <text x="667" y="376" class="small">auth · projects · members · invitations</text>
+    <text x="667" y="392" class="small">tasks · history · comments · dashboard</text>
+
+    <rect x="655" y="408" width="310" height="40" rx="6" fill="#ede9fe" stroke="#8b5cf6"/>
+    <text x="667" y="424" class="chipb">projectAccess.ts</text>
+    <text x="667" y="440" class="small">roles &amp; who-sees-what rules, in one place</text>
+
+    <rect x="655" y="456" width="310" height="40" rx="6" fill="#fff" stroke="#ddd6fe"/>
+    <text x="667" y="472" class="chipb">Prisma client</text>
+    <text x="667" y="488" class="small">typed queries · migrations · one aggregate SQL</text>
+
+    <rect x="655" y="504" width="310" height="40" rx="6" fill="#fef2f2" stroke="#fca5a5"/>
+    <text x="667" y="520" class="chipb">Error handler</text>
+    <text x="667" y="536" class="mono">{ error: { message, details } }</text>
+  </g>
+  <text x="655" y="568" class="small">Also: <tspan class="mono">/api/docs</tspan> (Swagger) · <tspan class="mono">/api/health</tspan></text>
+  <text x="655" y="588" class="tiny">404 if not in the project · 403 if your role can't</text>
+
+  <!-- ============ Database ============ -->
+  <rect x="1050" y="90" width="200" height="520" rx="14" fill="#ecfdf5" stroke="#10b981" stroke-width="1.5"/>
+  <text x="1062" y="118" class="title">PostgreSQL</text>
+  <text x="1062" y="138" class="sub">port 5432 · Prisma migrations</text>
+  <g>
+    <rect x="1062" y="152" width="176" height="36" rx="6" fill="#fff" stroke="#a7f3d0"/>
+    <text x="1072" y="166" class="chipb">users</text>
+    <text x="1072" y="181" class="tiny">email unique · bcrypt hash</text>
+
+    <rect x="1062" y="194" width="176" height="36" rx="6" fill="#fff" stroke="#a7f3d0"/>
+    <text x="1072" y="208" class="chipb">projects</text>
+    <text x="1072" y="223" class="tiny">created_by_id = owner</text>
+
+    <rect x="1062" y="236" width="176" height="36" rx="6" fill="#fff" stroke="#a7f3d0"/>
+    <text x="1072" y="250" class="chipb">project_members</text>
+    <text x="1072" y="265" class="tiny">role: OWNER/ADMIN/MEMBER</text>
+
+    <rect x="1062" y="278" width="176" height="36" rx="6" fill="#fff" stroke="#a7f3d0"/>
+    <text x="1072" y="292" class="chipb">tasks</text>
+    <text x="1072" y="307" class="tiny">assignee · status · due date</text>
+
+    <rect x="1062" y="320" width="176" height="36" rx="6" fill="#fff" stroke="#a7f3d0"/>
+    <text x="1072" y="334" class="chipb">task_activities</text>
+    <text x="1072" y="349" class="tiny">history (JSONB changes)</text>
+
+    <rect x="1062" y="362" width="176" height="36" rx="6" fill="#fff" stroke="#a7f3d0"/>
+    <text x="1072" y="376" class="chipb">task_comments</text>
+    <text x="1072" y="391" class="tiny">mentioned_user_ids[] · GIN</text>
+
+    <rect x="1062" y="404" width="176" height="36" rx="6" fill="#fff" stroke="#a7f3d0"/>
+    <text x="1072" y="418" class="chipb">project_invitations</text>
+    <text x="1072" y="433" class="tiny">token hash · expires in 24h</text>
+  </g>
+  <text x="1062" y="468" class="small">Indexes match the queries</text>
+  <text x="1062" y="486" class="small">Cascading deletes</text>
+  <text x="1062" y="520" class="tiny">Tests use a separate</text>
+  <text x="1062" y="534" class="tiny">taskflow_test database</text>
+
+  <!-- ============ Main arrows ============ -->
+  <!-- Browser -> Frontend -->
+  <line x1="240" y1="185" x2="298" y2="185" class="line" marker-end="url(#arrow)"/>
+  <text x="270" y="177" text-anchor="middle" class="edge">opens</text>
+
+  <!-- Frontend <-> API -->
+  <line x1="570" y1="290" x2="638" y2="290" class="line" marker-end="url(#arrow)"/>
+  <text x="605" y="272" text-anchor="middle" class="edge">fetch JSON</text>
+  <text x="605" y="284" text-anchor="middle" class="edge">+ cookie</text>
+  <line x1="640" y1="322" x2="572" y2="322" class="line" marker-end="url(#arrow)"/>
+  <text x="605" y="340" text-anchor="middle" class="edge">JSON</text>
+
+  <!-- API <-> DB -->
+  <line x1="980" y1="290" x2="1048" y2="290" class="line" marker-end="url(#arrow)"/>
+  <text x="1015" y="282" text-anchor="middle" class="edge">SQL</text>
+  <line x1="1050" y1="322" x2="982" y2="322" class="line" marker-end="url(#arrow)"/>
+  <text x="1015" y="340" text-anchor="middle" class="edge">rows</text>
+
+  <!-- ============ Email flow ============ -->
+  <rect x="640" y="650" width="340" height="100" rx="12" fill="#fffbeb" stroke="#f59e0b" stroke-width="1.5"/>
+  <text x="655" y="676" class="title">Email <tspan class="sub">(mailer.ts)</tspan></text>
+  <text x="655" y="698" class="small">Invitations (one-time link, valid 24h) · @mentions</text>
+  <text x="655" y="716" class="small">Mailpit locally · any SMTP provider in production</text>
+  <text x="655" y="734" class="tiny">No SMTP_HOST set → printed in the backend terminal</text>
+
+  <line x1="810" y1="610" x2="810" y2="648" class="line" marker-end="url(#arrow)"/>
+  <text x="818" y="634" class="edge">sendEmail()</text>
+
+  <rect x="40" y="650" width="200" height="100" rx="12" fill="#f8fafc" stroke="#94a3b8" stroke-width="1.5"/>
+  <text x="140" y="678" text-anchor="middle" class="title">Email inbox</text>
+  <text x="140" y="700" text-anchor="middle" class="small">invitation link</text>
+  <text x="140" y="718" text-anchor="middle" class="mono">/invite/&lt;token&gt;</text>
+  <text x="140" y="738" text-anchor="middle" class="small">@mention notifications</text>
+
+  <line x1="640" y1="700" x2="242" y2="700" class="line" marker-end="url(#arrow)"/>
+  <text x="440" y="692" text-anchor="middle" class="edge">email</text>
+
+  <line x1="140" y1="650" x2="140" y2="262" class="line" marker-end="url(#arrow)"/>
+  <text x="150" y="450" class="edge">click link →</text>
+  <text x="150" y="464" class="edge">sign up / sign in</text>
+  <text x="150" y="478" class="edge">→ joins project</text>
+
+  <!-- ============ Run & ship ============ -->
+  <text x="40" y="784" class="label">RUN &amp; SHIP</text>
+  <rect x="40" y="794" width="380" height="64" rx="10" fill="#f1f5f9" stroke="#cbd5e1"/>
+  <text x="56" y="820" class="chipb">Docker Compose</text>
+  <text x="56" y="840" class="small">db · backend · frontend · mailpit (one command)</text>
+
+  <rect x="450" y="794" width="380" height="64" rx="10" fill="#f1f5f9" stroke="#cbd5e1"/>
+  <text x="466" y="820" class="chipb">GitHub Actions CI</text>
+  <text x="466" y="840" class="small">lint · type-check · tests · build on every push</text>
+
+  <rect x="860" y="794" width="380" height="64" rx="10" fill="#f1f5f9" stroke="#cbd5e1"/>
+  <text x="876" y="820" class="chipb">Automated tests</text>
+  <text x="876" y="840" class="small">Vitest + Supertest: real HTTP against a test DB</text>
+</svg>
