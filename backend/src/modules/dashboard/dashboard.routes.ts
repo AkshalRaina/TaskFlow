@@ -4,6 +4,8 @@ import { getDashboardStats } from './dashboard.service';
 // Mounted behind `requireAuth`, so `req.userId` is always set here.
 export const dashboardRoutes = Router();
 
+//Counts, completion rate, "needs attention" tasks, recent mentions
+
 dashboardRoutes.get('/', async (req, res) => {
   res.json(await getDashboardStats(req.userId));
 });

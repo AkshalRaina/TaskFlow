@@ -17,6 +17,7 @@ const cookieOptions: CookieOptions = {
   path: '/',
 };
 
+//Creates the account (bcrypt hash) and sets the JWT cookie. If an inviteToken is sent, it also joins that project
 authRoutes.post('/register', async (req, res) => {
   const { name, email, password, inviteToken } = registerSchema.parse(req.body);
 
@@ -30,6 +31,7 @@ authRoutes.post('/register', async (req, res) => {
   res.status(201).json({ ...user, joinedProject });
 });
 
+//Checks the password and sets the JWT cookie
 authRoutes.post('/login', async (req, res) => {
   const { email, password } = loginSchema.parse(req.body);
   const user = await loginUser(email, password);
@@ -38,11 +40,13 @@ authRoutes.post('/login', async (req, res) => {
   res.json(user);
 });
 
+//Clears the cookie
 authRoutes.post('/logout', (_req, res) => {
   res.clearCookie(AUTH_COOKIE, cookieOptions);
   res.status(204).end();
 });
 
+//Returns the current user, or 401 if the account was deleted
 authRoutes.get('/me', requireAuth, async (req, res) => {
   const user = await getUserById(req.userId);
   if (!user) {
